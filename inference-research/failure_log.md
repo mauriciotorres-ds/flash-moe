@@ -100,3 +100,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -18.08% vs best
 - **Lessons learned:** Affects load time/peak RAM, not steady tok/s.
 
+## exp017 — channels_last memory format
+
+- **Why attempted:** channels_last can improve some kernel memory access.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -17.62% vs best
+- **Lessons learned:** Usually neutral for transformers; measure.
+

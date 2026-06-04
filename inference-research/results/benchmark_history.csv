@@ -179,3 +179,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 17,channels_last,struct_json,structured,22,21.521,22.024,0.0688,1.0223,1517.85,1517.85,80.16,,1.794,73,mps,True,MEASURED,2026-06-04T13:10:53-04:00
 17,channels_last,struct_yaml,structured,81,39.382,40.242,0.0688,2.0568,1517.88,1517.88,78.95,,3.244,132,mps,True,MEASURED,2026-06-04T13:10:53-04:00
 17,channels_last,struct_table,structured,43,39.737,40.661,0.0492,1.0821,1517.88,1517.88,81.3,,2.212,90,mps,True,MEASURED,2026-06-04T13:10:53-04:00
+18,cpu_4threads_pcores,factual_1,factual,77,37.674,38.75,0.0826,2.0439,3422.65,3422.65,143.31,,2.753,112,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,factual_2,factual,21,31.509,34.36,0.0844,0.6665,3430.86,3430.86,137.23,,1.352,55,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,coding_1,coding,125,36.997,37.88,0.1051,3.3786,3436.56,3436.56,142.73,,4.129,168,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,coding_2,coding,119,35.166,35.812,0.089,3.3839,3441.28,3441.28,142.91,,4.276,174,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,reasoning_1,reasoning,179,31.944,32.38,0.1064,5.6035,3450.96,3450.96,143.71,,6.39,260,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,reasoning_2,reasoning,131,30.823,31.247,0.0896,4.25,3454.57,3454.57,143.17,,4.571,186,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,summ_1,summarization,45,36.011,41.594,0.1918,1.2496,3458.11,3458.11,142.3,,3.391,138,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,struct_json,structured,22,20.581,21.865,0.1085,1.0689,3458.65,3458.65,139.53,,1.794,73,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,struct_yaml,structured,81,38.632,40.269,0.1101,2.0967,3458.65,3458.65,142.3,,3.244,132,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+18,cpu_4threads_pcores,struct_table,structured,43,38.579,40.941,0.0887,1.1146,3458.81,3458.81,140.97,,2.212,90,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
