@@ -212,3 +212,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** +0.33% vs best
 - **Lessons learned:** Trades a little speed for headroom.
 
+## exp036 — float32 matmul precision = high (TF32-style)
+
+- **Why attempted:** Allow reduced-precision fp32 matmul for throughput.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -5.67% vs best
+- **Lessons learned:** Backend-dependent; measure for MPS.
+
