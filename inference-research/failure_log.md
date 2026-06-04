@@ -16,3 +16,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -0.94% vs best
 - **Lessons learned:** Usually >= no_grad; expected to replace it.
 
+## exp003 — model.eval() isolation
+
+- **Why attempted:** Leaving train mode on enables dropout/other train-time paths.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -5.47% vs best
+- **Lessons learned:** eval() expected better; this run should be slower/worse quality.
+
