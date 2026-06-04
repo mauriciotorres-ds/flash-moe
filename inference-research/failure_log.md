@@ -149,3 +149,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -36.96% vs best
 - **Lessons learned:** Diminishing returns / memory pressure past some point.
 
+## exp024 — Speculative decoding (draft model)
+
+- **Why attempted:** A small draft proposes tokens the target verifies in parallel.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -85.20% vs best
+- **Lessons learned:** Gains depend on draft acceptance rate; can break even.
+

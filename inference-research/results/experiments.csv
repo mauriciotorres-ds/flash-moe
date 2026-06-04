@@ -24,3 +24,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 22,Prompt batching (bs=4),scheduling,batch4,discard,27.975,36.527,41.898,-33.23,0.0827,3.0324,1838.81,3.411,True,True,MEASURED,mps,2026-06-04T13:39:50-04:00,
 23,Prompt batching (bs=8),scheduling,batch8,discard,26.411,36.527,41.898,-36.96,0.0923,4.2216,1855.85,3.411,True,True,MEASURED,mps,2026-06-04T13:42:42-04:00,
 24,Speculative decoding (draft model),decoding,speculative,discard,6.199,36.527,41.898,-85.2,0.3157,2.5477,1448.28,1.656,True,True,MEASURED,mps,2026-06-04T13:44:45-04:00,
+25,Greedy vs sampling cost,decoding,greedy_decode,discard,35.096,36.527,41.898,-16.23,0.0677,2.4238,2264.53,3.411,True,True,MEASURED,mps,2026-06-04T13:46:24-04:00,
