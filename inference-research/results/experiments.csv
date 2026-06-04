@@ -16,3 +16,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 14,torch.compile (reduce-overhead),runtime,compile_reduce_ovh,discard,35.547,36.527,41.898,-15.16,0.0639,2.3971,1851.65,3.411,True,True,MEASURED,mps,2026-06-04T13:05:54-04:00,
 15,torch.compile (max-autotune),runtime,compile_max_autotune,discard,34.885,36.527,41.898,-16.74,0.0688,2.3715,1431.14,3.411,True,True,MEASURED,mps,2026-06-04T13:07:31-04:00,
 16,low_cpu_mem_usage loading,system,low_cpu_mem_load,discard,34.322,36.527,41.898,-18.08,0.0665,2.4858,1842.38,3.411,True,True,MEASURED,mps,2026-06-04T13:09:13-04:00,
+17,channels_last memory format,memory,channels_last,discard,34.517,36.527,41.898,-17.62,0.0661,2.4455,1517.88,3.411,True,True,MEASURED,mps,2026-06-04T13:10:53-04:00,

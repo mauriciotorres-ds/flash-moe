@@ -93,3 +93,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -16.74% vs best
 - **Lessons learned:** Long compile; may or may not beat reduce-overhead.
 
+## exp016 — low_cpu_mem_usage loading
+
+- **Why attempted:** Streamed weight loading lowers peak RAM during init.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -18.08% vs best
+- **Lessons learned:** Affects load time/peak RAM, not steady tok/s.
+
