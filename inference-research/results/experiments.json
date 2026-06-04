@@ -670,5 +670,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T13:55:32-04:00",
     "notes": ""
+  },
+  {
+    "exp": "32",
+    "title": "Expert SSD streaming (MoE-only)",
+    "category": "ssd_streaming",
+    "label": "moe_ssd_stream(NA_dense)",
+    "decision": "n/a",
+    "mean_tps": "",
+    "baseline_tps": "",
+    "best_tps": "",
+    "delta_pct_vs_best": "",
+    "mean_ttft_s": "",
+    "mean_latency_s": "",
+    "peak_memory_mb": "",
+    "kv_cache_mb": "",
+    "quality_ok": "True",
+    "measured": "False",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T13:55:32-04:00",
+    "notes": "Dense dev model has no experts; validated in Phase 2 on 397B MoE."
   }
 ]

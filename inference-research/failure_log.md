@@ -191,3 +191,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -7.86% vs best
 - **Lessons learned:** Expected strong combo if both individually helped.
 
+## exp031 — Lazy mmap weight loading (safetensors)
+
+- **Why attempted:** Memory-map weights so pages load on demand from SSD.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** +0.58% vs best
+- **Lessons learned:** Helps load/peak-RAM; Flash-MoE found mmap bad for COLD per-token expert access, but fine for resident dense weights.
+
