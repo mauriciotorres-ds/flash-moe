@@ -1,13 +1,13 @@
 {
-  "exp": 11,
-  "label": "Static KV cache",
-  "mean_tps": 41.898,
+  "exp": 30,
+  "label": "SDPA + fp16 combo",
+  "mean_tps": 53.75,
   "data_source": "MEASURED",
-  "updated": "2026-06-04T12:45:30-04:00",
+  "updated": "2026-06-04T13:54:29-04:00",
   "config": {
     "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
     "device": "mps",
-    "dtype": "float32",
+    "dtype": "float16",
     "inference_mode": false,
     "no_grad": false,
     "eval_mode": true,
@@ -18,7 +18,7 @@
     "attn_implementation": "sdpa",
     "sdpa_backend": "auto",
     "use_cache": true,
-    "cache_implementation": "static",
+    "cache_implementation": "dynamic",
     "static_cache_max_len": 2048,
     "low_cpu_mem_usage": false,
     "pin_memory": false,
@@ -44,7 +44,7 @@
     "batch_tokenize": false,
     "warmup_runs": 1,
     "measure_runs": 3,
-    "label": "best@exp011",
+    "label": "best@exp030",
     "notes": "Reference HF Transformers baseline. No optimizations applied."
   }
 }

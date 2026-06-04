@@ -309,3 +309,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 30,sdpa+fp16,struct_json,structured,22,33.122,34.512,0.0557,0.6642,2243.99,2243.99,79.36,,0.897,73,mps,True,MEASURED,2026-06-04T13:54:29-04:00
 30,sdpa+fp16,struct_yaml,structured,81,60.927,62.613,0.0518,1.3295,2244.4,2244.4,80.97,,1.622,132,mps,True,MEASURED,2026-06-04T13:54:29-04:00
 30,sdpa+fp16,struct_table,structured,43,62.022,64.121,0.0383,0.6933,2244.67,2244.67,108.17,,1.106,90,mps,True,MEASURED,2026-06-04T13:54:29-04:00
+31,mmap_safetensors,factual_1,factual,77,60.299,61.302,0.0372,1.277,2231.75,2231.75,97.65,,1.376,112,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,factual_2,factual,21,49.163,51.75,0.0407,0.4271,2231.75,2231.75,112.06,,0.676,55,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,coding_1,coding,125,59.069,59.995,0.0493,2.1162,2231.84,2231.84,92.57,,2.064,168,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,coding_2,coding,119,55.656,56.146,0.0365,2.1381,2232.35,2232.35,91.56,,2.138,174,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,reasoning_1,reasoning,178,53.178,53.588,0.0442,3.3472,2233.91,2233.91,82.93,,3.183,259,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,reasoning_2,reasoning,132,50.439,50.792,0.0378,2.617,2234.12,2234.12,90.83,,2.298,187,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,summ_1,summarization,45,58.192,65.391,0.1004,0.7733,2234.14,2234.14,105.88,,1.696,138,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,struct_json,structured,22,32.758,34.019,0.0543,0.6716,2234.14,2234.14,80.19,,0.897,73,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,struct_yaml,structured,81,60.357,61.983,0.0513,1.342,2234.14,2234.12,82.74,,1.622,132,mps,True,MEASURED,2026-06-04T13:55:32-04:00
+31,mmap_safetensors,struct_table,structured,43,61.504,63.806,0.0409,0.6991,2234.14,2234.14,109.47,,1.106,90,mps,True,MEASURED,2026-06-04T13:55:32-04:00

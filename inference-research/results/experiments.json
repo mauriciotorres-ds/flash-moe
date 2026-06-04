@@ -649,5 +649,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T13:54:29-04:00",
     "notes": ""
+  },
+  {
+    "exp": "31",
+    "title": "Lazy mmap weight loading (safetensors)",
+    "category": "ssd_streaming",
+    "label": "mmap_safetensors",
+    "decision": "discard",
+    "mean_tps": "54.062",
+    "baseline_tps": "36.527",
+    "best_tps": "53.75",
+    "delta_pct_vs_best": "0.58",
+    "mean_ttft_s": "0.0493",
+    "mean_latency_s": "1.5409",
+    "peak_memory_mb": "2234.14",
+    "kv_cache_mb": "1.706",
+    "quality_ok": "True",
+    "measured": "True",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T13:55:32-04:00",
+    "notes": ""
   }
 ]

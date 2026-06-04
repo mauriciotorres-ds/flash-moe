@@ -1,4 +1,5 @@
 rank,exp,label,mean_tps,delta_pct_vs_baseline,decision,data_source
-1,11,static_cache,41.898,14.7,keep,MEASURED
-2,6,sdpa,39.8,8.96,keep,MEASURED
-3,0,baseline,36.527,0.0,keep,MEASURED
+1,30,sdpa+fp16,53.75,47.15,keep,MEASURED
+2,11,static_cache,41.898,14.7,keep,MEASURED
+3,6,sdpa,39.8,8.96,keep,MEASURED
+4,0,baseline,36.527,0.0,keep,MEASURED
