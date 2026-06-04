@@ -177,3 +177,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -19.17% vs best
 - **Lessons learned:** Improves measured steady-state; standard serving practice.
 
+## exp028 — Pinned host memory
+
+- **Why attempted:** Pinned memory speeds host<->device transfers.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -15.84% vs best
+- **Lessons learned:** Mainly a CUDA win; near-neutral on unified-memory MPS.
+

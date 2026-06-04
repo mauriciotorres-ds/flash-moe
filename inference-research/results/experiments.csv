@@ -28,3 +28,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 26,Early EOS stopping,decoding,early_eos,discard,34.734,36.527,41.898,-17.1,0.0657,2.4775,1747.81,3.411,True,True,MEASURED,mps,2026-06-04T13:48:07-04:00,
 27,Persistent engine reuse (no reload),system,warm_persistent,discard,33.866,36.527,41.898,-19.17,0.0657,2.4919,1564.87,3.411,True,True,MEASURED,mps,2026-06-04T13:50:16-04:00,
 28,Pinned host memory,memory,pinned_mem,discard,35.262,36.527,41.898,-15.84,0.0657,2.4167,1521.81,3.411,True,True,MEASURED,mps,2026-06-04T13:51:54-04:00,
+29,Static cache + max-autotune compile,runtime,static+autotune,discard,38.606,36.527,41.898,-7.86,0.0623,2.1865,2532.9,3.411,True,True,MEASURED,mps,2026-06-04T13:53:25-04:00,
