@@ -226,3 +226,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -2.48% vs best
 - **Lessons learned:** Either the new best or reveals a bad interaction.
 
+## exp039 — All cores vs P-cores (threads)
+
+- **Why attempted:** Use all 10 CPU cores for CPU-side ops.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -2.30% vs best
+- **Lessons learned:** E-cores may add contention; compare to exp18.
+
