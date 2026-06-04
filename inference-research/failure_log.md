@@ -114,3 +114,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -19.35% vs best
 - **Lessons learned:** Only relevant if a CPU fallback path is used.
 
+## exp019 — Slow (Python) tokenizer ablation
+
+- **Why attempted:** The Rust fast tokenizer should beat the Python one at encode.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -33.18% vs best
+- **Lessons learned:** Fast tokenizer expected better; this run should regress.
+

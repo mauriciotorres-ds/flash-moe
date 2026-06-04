@@ -19,3 +19,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 17,channels_last memory format,memory,channels_last,discard,34.517,36.527,41.898,-17.62,0.0661,2.4455,1517.88,3.411,True,True,MEASURED,mps,2026-06-04T13:10:53-04:00,
 18,Pin threads to performance cores,system,cpu_4threads_pcores,discard,33.792,36.527,41.898,-19.35,0.1056,2.4856,3458.81,3.411,True,True,MEASURED,cpu,2026-06-04T13:12:34-04:00,
 19,Slow (Python) tokenizer ablation,runtime,slow_tokenizer(ablation),discard,27.996,36.527,41.898,-33.18,0.0846,2.9594,1735.98,3.411,True,True,MEASURED,mps,2026-06-04T13:17:58-04:00,
+20,INT8 (bitsandbytes),quantization,int8_bnb,discard,27.205,36.527,41.898,-35.07,0.0906,3.6509,1743.57,3.411,True,True,MEASURED,mps,2026-06-04T13:35:47-04:00,quantization=int8 via bitsandbytes requires CUDA; not supported on mps. Running unquantized.

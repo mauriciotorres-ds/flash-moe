@@ -199,3 +199,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 19,slow_tokenizer(ablation),struct_json,structured,22,16.573,16.934,0.0874,1.3275,1735.92,1735.92,80.08,,1.794,73,mps,True,MEASURED,2026-06-04T13:17:58-04:00
 19,slow_tokenizer(ablation),struct_yaml,structured,81,30.629,31.317,0.09,2.6446,1735.95,1735.95,84.36,,3.244,132,mps,True,MEASURED,2026-06-04T13:17:58-04:00
 19,slow_tokenizer(ablation),struct_table,structured,43,31.944,32.718,0.0624,1.3461,1735.98,1735.98,79.75,,2.212,90,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+20,int8_bnb,factual_1,factual,77,28.241,28.756,0.0835,2.7265,1728.99,1728.99,83.81,,2.753,112,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,factual_2,factual,21,28.993,29.872,0.0548,0.7243,1732.64,1732.64,77.04,,1.352,55,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,coding_1,coding,125,30.035,30.367,0.0784,4.1618,1737.11,1737.11,81.14,,4.129,168,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,coding_2,coding,119,26.975,27.158,0.0665,4.4115,1739.01,1739.01,80.99,,4.276,174,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,reasoning_1,reasoning,179,13.633,13.76,0.1933,13.1295,1743.57,1743.57,90.26,,6.39,260,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,reasoning_2,reasoning,131,26.176,26.228,0.0481,5.0046,1590.3,1590.3,80.92,,4.571,186,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,summ_1,summarization,45,36.357,40.173,0.1425,1.2377,1590.94,1590.94,76.13,,3.391,138,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,struct_json,structured,22,16.058,16.327,0.0838,1.37,1591.1,1591.1,80.53,,1.794,73,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,struct_yaml,structured,81,34.027,34.935,0.0905,2.3805,1591.31,1591.3,83.32,,3.244,132,mps,True,MEASURED,2026-06-04T13:35:47-04:00
+20,int8_bnb,struct_table,structured,43,31.554,32.355,0.0646,1.3627,1591.44,1591.44,79.52,,2.212,90,mps,True,MEASURED,2026-06-04T13:35:47-04:00
