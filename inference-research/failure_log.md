@@ -44,3 +44,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -1.56% vs best
 - **Lessons learned:** Expected UNSUPPORTED on MPS -> graceful fallback (a failure to log).
 
+## exp008 — SDPA math backend
+
+- **Why attempted:** Forcing the math kernel can be faster for tiny head dims.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -2.02% vs best
+- **Lessons learned:** Backend-dependent; measure.
+
