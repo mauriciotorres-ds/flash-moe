@@ -156,3 +156,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -85.20% vs best
 - **Lessons learned:** Gains depend on draft acceptance rate; can break even.
 
+## exp025 — Greedy vs sampling cost
+
+- **Why attempted:** Greedy avoids sampling/softmax-top-k overhead.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -16.23% vs best
+- **Lessons learned:** Greedy slightly faster; default decode for benchmarking.
+
