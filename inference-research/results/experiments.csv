@@ -32,3 +32,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 30,SDPA + fp16 combo,runtime,sdpa+fp16,keep,53.75,36.527,41.898,28.29,0.0495,1.5539,2244.67,1.706,True,True,MEASURED,mps,2026-06-04T13:54:29-04:00,
 31,Lazy mmap weight loading (safetensors),ssd_streaming,mmap_safetensors,discard,54.062,36.527,53.75,0.58,0.0493,1.5409,2234.14,1.706,True,True,MEASURED,mps,2026-06-04T13:55:32-04:00,
 32,Expert SSD streaming (MoE-only),ssd_streaming,moe_ssd_stream(NA_dense),n/a,,,,,,,,,True,False,MEASURED,mps,2026-06-04T13:55:32-04:00,Dense dev model has no experts; validated in Phase 2 on 397B MoE.
+33,"fp16 KV cache, fp32 compute",memory,fp16_kv_cache,discard,45.834,36.527,53.75,-14.73,0.058,1.7971,2335.11,1.691,True,True,MEASURED,mps,2026-06-04T13:56:46-04:00,kv_cache_dtype=float16 requested; approximated via model dtype + static cache where available.
