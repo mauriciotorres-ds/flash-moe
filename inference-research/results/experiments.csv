@@ -41,3 +41,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 39,All cores vs P-cores (threads),system,cpu_10threads_all,discard,52.023,36.527,53.248,-2.3,0.0515,1.3729,1144.19,1.543,True,True,MEASURED,mps,2026-06-04T14:02:26-04:00,
 40,Batch tokenizer encode,runtime,batch_tokenize,keep,55.537,36.527,53.248,4.3,0.0508,1.2633,1397.1,1.543,True,True,MEASURED,mps,2026-06-04T14:03:18-04:00,
 41,Dynamic batching emulation,scheduling,dynamic_batch,keep,56.612,36.527,55.537,1.94,0.0479,1.2384,1431.14,1.543,True,True,MEASURED,mps,2026-06-04T14:04:09-04:00,
+42,Final stacked best-of-all,runtime,final_stacked,discard,54.75,36.527,56.612,-3.29,0.0498,1.2801,1603.26,1.543,True,True,MEASURED,mps,2026-06-04T14:05:02-04:00,

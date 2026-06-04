@@ -1,9 +1,9 @@
 {
-  "exp": 40,
-  "label": "Batch tokenizer encode",
-  "mean_tps": 55.537,
+  "exp": 41,
+  "label": "Dynamic batching emulation",
+  "mean_tps": 56.612,
   "data_source": "MEASURED",
-  "updated": "2026-06-04T14:03:19-04:00",
+  "updated": "2026-06-04T14:04:09-04:00",
   "config": {
     "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
     "device": "mps",
@@ -31,7 +31,7 @@
     "top_p": 0.9,
     "top_k": 50,
     "seed": 1234,
-    "batch_size": 1,
+    "batch_size": 4,
     "speculative": false,
     "assistant_model_id": null,
     "num_assistant_tokens": 5,
@@ -44,7 +44,7 @@
     "batch_tokenize": true,
     "warmup_runs": 1,
     "measure_runs": 3,
-    "label": "best@exp040",
+    "label": "best@exp041",
     "notes": "Reference HF Transformers baseline. No optimizations applied."
   }
 }
