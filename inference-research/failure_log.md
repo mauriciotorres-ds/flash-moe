@@ -205,3 +205,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -14.73% vs best
 - **Lessons learned:** Memory win; small/no speed change for short prompts.
 
+## exp034 — Attention slicing
+
+- **Why attempted:** Compute attention in chunks to cap peak memory.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. attention_slicing not exposed by this model; use sdpa mem_efficient backend (exp9) for the same goal.
+- **Performance impact:** +0.33% vs best
+- **Lessons learned:** Trades a little speed for headroom.
+
