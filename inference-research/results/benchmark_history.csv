@@ -29,3 +29,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 2,inference_mode,struct_json,structured,22,21.735,22.326,0.0716,1.0122,1549.29,1549.29,82.33,,1.794,73,mps,True,MEASURED,2026-06-04T12:29:13-04:00
 2,inference_mode,struct_yaml,structured,81,40.328,41.276,0.0704,2.0085,1549.47,1549.47,78.88,,3.244,132,mps,True,MEASURED,2026-06-04T12:29:13-04:00
 2,inference_mode,struct_table,structured,43,41.475,42.876,0.0572,1.0368,1549.5,1549.5,79.93,,2.212,90,mps,True,MEASURED,2026-06-04T12:29:13-04:00
+3,no_eval(ablation),factual_1,factual,77,38.85,39.256,0.046,1.982,1843.54,1843.53,79.97,,2.753,112,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),factual_2,factual,21,32.936,33.944,0.0484,0.6376,1844.36,1844.36,78.7,,1.352,55,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),coding_1,coding,125,39.128,39.689,0.0703,3.1946,1892.58,1892.55,78.51,,4.129,168,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),coding_2,coding,119,36.286,36.548,0.0509,3.2795,1893.79,1893.79,78.34,,4.276,174,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),reasoning_1,reasoning,179,32.817,33.006,0.0615,5.4545,1894.43,1894.43,76.85,,6.39,260,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),reasoning_2,reasoning,131,30.295,30.414,0.0498,4.3242,1894.79,1894.79,76.01,,4.571,186,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),summ_1,summarization,45,37.073,41.117,0.1437,1.2138,1894.92,1894.92,76.14,,3.391,138,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),struct_json,structured,22,20.971,21.453,0.0702,1.0491,1883.26,1883.26,80.17,,1.794,73,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),struct_yaml,structured,81,38.687,39.598,0.0734,2.0937,1882.85,1882.82,75.55,,3.244,132,mps,True,MEASURED,2026-06-04T12:30:52-04:00
+3,no_eval(ablation),struct_table,structured,43,38.241,39.185,0.0526,1.1244,1882.87,1882.87,78.18,,2.212,90,mps,True,MEASURED,2026-06-04T12:30:52-04:00
