@@ -139,3 +139,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 13,compile_default,struct_json,structured,22,21.624,22.13,0.0684,1.0174,1931.43,1931.43,77.66,,1.794,73,mps,True,MEASURED,2026-06-04T13:04:17-04:00
 13,compile_default,struct_yaml,structured,81,41.14,42.061,0.0669,1.9689,1931.44,1931.44,79.04,,3.244,132,mps,True,MEASURED,2026-06-04T13:04:17-04:00
 13,compile_default,struct_table,structured,43,41.96,42.937,0.0466,1.0248,1931.56,1931.56,79.44,,2.212,90,mps,True,MEASURED,2026-06-04T13:04:17-04:00
+14,compile_reduce_ovh,factual_1,factual,77,39.447,39.881,0.0463,1.952,1845.49,1845.49,78.0,,2.753,112,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,factual_2,factual,21,34.468,35.517,0.0462,0.6093,1847.39,1847.39,82.43,,1.352,55,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,coding_1,coding,125,38.759,39.261,0.0667,3.2251,1851.65,1851.65,76.36,,4.129,168,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,coding_2,coding,119,30.602,30.783,0.0554,3.8887,1438.76,1356.32,78.88,,4.276,174,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,reasoning_1,reasoning,179,34.481,34.68,0.0586,5.1913,1185.89,1185.89,76.84,,6.39,260,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,reasoning_2,reasoning,131,32.931,33.08,0.0482,3.978,1190.58,1190.58,77.25,,4.571,186,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,summ_1,summarization,45,39.954,44.357,0.1343,1.1263,1193.38,1193.38,76.43,,3.391,138,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,struct_json,structured,22,22.597,23.197,0.0683,0.9736,1201.65,1201.62,80.26,,1.794,73,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,struct_yaml,structured,81,40.642,41.533,0.0668,1.993,1202.14,1202.14,78.85,,3.244,132,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+14,compile_reduce_ovh,struct_table,structured,43,41.59,42.591,0.0478,1.0339,1210.34,1210.34,80.63,,2.212,90,mps,True,MEASURED,2026-06-04T13:05:54-04:00

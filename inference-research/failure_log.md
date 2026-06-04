@@ -72,3 +72,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -12.55% vs best
 - **Lessons learned:** Likely slower for short prompts; helps long-context only.
 
+## exp013 — torch.compile (default)
+
+- **Why attempted:** Graph capture fuses ops and cuts dispatch overhead.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -13.65% vs best
+- **Lessons learned:** First-call compile cost; warmup hides it.
+
