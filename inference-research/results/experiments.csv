@@ -7,3 +7,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 5,bfloat16 weights,quantization,bf16,discard,33.069,36.527,36.527,-9.47,0.0801,2.4228,2066.01,1.685,True,True,MEASURED,mps,2026-06-04T12:34:18-04:00,
 6,SDPA attention,runtime,sdpa,keep,39.8,36.527,36.527,8.96,0.0551,2.1231,1945.08,3.411,True,True,MEASURED,mps,2026-06-04T12:35:46-04:00,
 7,FlashAttention-2,runtime,flash_attn2,discard,39.179,36.527,39.8,-1.56,0.0574,2.1589,2090.43,3.411,True,True,MEASURED,mps,2026-06-04T12:37:15-04:00,"load fallback (dropped optional kwargs): FlashAttention2 has been toggled on, but it cannot be used due to the following error: the package for FlashAttention2 doesn't seem to be installed."
+8,SDPA math backend,runtime,sdpa_math,discard,38.996,36.527,39.8,-2.02,0.0562,2.1786,1614.64,3.411,True,True,MEASURED,mps,2026-06-04T12:38:44-04:00,
