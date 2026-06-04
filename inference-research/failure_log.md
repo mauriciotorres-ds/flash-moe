@@ -184,3 +184,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -15.84% vs best
 - **Lessons learned:** Mainly a CUDA win; near-neutral on unified-memory MPS.
 
+## exp029 — Static cache + max-autotune compile
+
+- **Why attempted:** Static cache gives compile a fixed-shape graph -> best fusion.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -7.86% vs best
+- **Lessons learned:** Expected strong combo if both individually helped.
+
