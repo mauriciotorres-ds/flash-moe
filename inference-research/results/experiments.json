@@ -229,5 +229,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T12:43:59-04:00",
     "notes": ""
+  },
+  {
+    "exp": "11",
+    "title": "Static KV cache",
+    "category": "memory",
+    "label": "static_cache",
+    "decision": "keep",
+    "mean_tps": "41.898",
+    "baseline_tps": "36.527",
+    "best_tps": "39.8",
+    "delta_pct_vs_best": "5.27",
+    "mean_ttft_s": "0.0607",
+    "mean_latency_s": "2.0011",
+    "peak_memory_mb": "2624.03",
+    "kv_cache_mb": "3.411",
+    "quality_ok": "True",
+    "measured": "True",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T12:45:30-04:00",
+    "notes": ""
   }
 ]

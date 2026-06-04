@@ -109,3 +109,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 10,no_kv_cache(ablation),struct_json,structured,22,13.015,13.084,0.0853,1.6904,1158.97,1158.97,64.88,,1.794,73,mps,True,MEASURED,2026-06-04T12:43:59-04:00
 10,no_kv_cache(ablation),struct_yaml,structured,81,21.114,21.33,0.0857,3.8363,1163.1,1151.94,56.11,,3.244,132,mps,True,MEASURED,2026-06-04T12:43:59-04:00
 10,no_kv_cache(ablation),struct_table,structured,43,24.569,24.823,0.0582,1.7502,1158.59,1158.59,61.86,,2.212,90,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+11,static_cache,factual_1,factual,77,50.258,51.189,0.0474,1.5321,2064.24,2064.24,84.73,,2.753,112,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,factual_2,factual,21,41.993,43.516,0.0405,0.5001,2069.53,2069.53,73.5,,1.352,55,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,coding_1,coding,125,48.574,49.307,0.0585,2.5734,2163.97,2163.97,79.16,,4.129,168,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,coding_2,coding,119,45.885,46.278,0.0437,2.5935,2280.93,2280.93,80.16,,4.276,174,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,reasoning_1,reasoning,179,39.058,39.342,0.0585,4.5829,2596.67,2596.67,80.89,,6.39,260,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,reasoning_2,reasoning,131,37.758,37.983,0.0469,3.4694,2620.54,2620.54,80.16,,4.571,186,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,summ_1,summarization,45,43.722,48.72,0.1261,1.0292,2621.64,2621.64,75.62,,3.391,138,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,struct_json,structured,22,24.406,25.17,0.0671,0.9014,2624.03,2624.03,89.19,,1.794,73,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,struct_yaml,structured,81,44.241,45.427,0.0698,1.8309,2617.31,2616.98,83.22,,3.244,132,mps,True,MEASURED,2026-06-04T12:45:30-04:00
+11,static_cache,struct_table,structured,43,43.087,44.209,0.048,0.998,2619.38,2619.38,90.94,,2.212,90,mps,True,MEASURED,2026-06-04T12:45:30-04:00

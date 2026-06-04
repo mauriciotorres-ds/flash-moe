@@ -58,3 +58,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -2.55% vs best
 - **Lessons learned:** May trade a little speed for memory.
 
+## exp010 — use_cache ablation
+
+- **Why attempted:** Disabling the KV cache forces full recompute each step.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -54.19% vs best
+- **Lessons learned:** Expected MUCH slower; validates cache value.
+
