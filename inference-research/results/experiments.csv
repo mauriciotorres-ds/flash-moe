@@ -35,3 +35,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 33,"fp16 KV cache, fp32 compute",memory,fp16_kv_cache,discard,45.834,36.527,53.75,-14.73,0.058,1.7971,2335.11,1.691,True,True,MEASURED,mps,2026-06-04T13:56:46-04:00,kv_cache_dtype=float16 requested; approximated via model dtype + static cache where available.
 34,Attention slicing,memory,attn_slicing,discard,53.926,36.527,53.75,0.33,0.0489,1.5454,2262.73,1.706,True,True,MEASURED,mps,2026-06-04T13:57:50-04:00,attention_slicing not exposed by this model; use sdpa mem_efficient backend (exp9) for the same goal.
 35,Length-adaptive max tokens,decoding,adaptive_maxtok,keep,54.164,36.527,53.75,0.77,0.0509,1.2925,2061.98,1.543,True,True,MEASURED,mps,2026-06-04T13:58:43-04:00,
+36,float32 matmul precision = high (TF32-style),runtime,matmul_high,discard,51.092,36.527,54.164,-5.67,0.0518,1.3861,2046.56,1.543,True,True,MEASURED,mps,2026-06-04T13:59:40-04:00,
