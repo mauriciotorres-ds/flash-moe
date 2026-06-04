@@ -1,3 +1,4 @@
 exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_best,mean_ttft_s,mean_latency_s,peak_memory_mb,kv_cache_mb,quality_ok,measured,data_source,device,timestamp,notes
 0,Reproducible HF baseline,runtime,baseline,keep,36.527,36.527,36.527,0.0,0.0636,2.3091,1624.13,3.411,True,True,MEASURED,mps,2026-06-04T12:26:00-04:00,
 1,torch.no_grad() context,runtime,no_grad,discard,35.35,36.527,36.527,-3.22,0.0654,2.3707,1969.26,3.411,True,True,MEASURED,mps,2026-06-04T12:27:38-04:00,
+2,torch.inference_mode() context,runtime,inference_mode,discard,36.185,36.527,36.527,-0.94,0.0649,2.321,1549.5,3.411,True,True,MEASURED,mps,2026-06-04T12:29:13-04:00,
