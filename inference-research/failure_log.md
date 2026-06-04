@@ -142,3 +142,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -33.23% vs best
 - **Lessons learned:** Improves throughput, not single-stream latency.
 
+## exp023 — Prompt batching (bs=8)
+
+- **Why attempted:** Larger batch -> higher utilisation until memory-bound.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -36.96% vs best
+- **Lessons learned:** Diminishing returns / memory pressure past some point.
+
