@@ -1,0 +1,28 @@
+# Inference Research Project — Python dependencies
+# Tested target: Apple M4 / 24 GB unified memory, macOS, Python 3.10+
+#
+# Install:  pip install -r requirements.txt
+#
+# Core inference
+torch>=2.4.0
+transformers>=4.44.0
+accelerate>=0.33.0
+safetensors>=0.4.0
+sentencepiece>=0.2.0
+
+# Metrics / profiling
+psutil>=5.9.0
+
+# Benchmark + analysis
+numpy>=1.26.0
+pandas>=2.1.0
+
+# Plots
+matplotlib>=3.8.0
+
+# Dashboard
+streamlit>=1.36.0
+
+# Optional / experiment-specific (engine degrades gracefully if missing):
+#   bitsandbytes   -> INT8/4-bit (CUDA only; documented as N/A on Apple Silicon)
+#   optimum        -> alternative quantization backends

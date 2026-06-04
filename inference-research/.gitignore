@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+dashboard_logs/*.json
+.streamlit/
+# Keep results/ and experiments/ committed — they are the research record.
