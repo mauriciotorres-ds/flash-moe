@@ -712,5 +712,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T13:56:46-04:00",
     "notes": "kv_cache_dtype=float16 requested; approximated via model dtype + static cache where available."
+  },
+  {
+    "exp": "34",
+    "title": "Attention slicing",
+    "category": "memory",
+    "label": "attn_slicing",
+    "decision": "discard",
+    "mean_tps": "53.926",
+    "baseline_tps": "36.527",
+    "best_tps": "53.75",
+    "delta_pct_vs_best": "0.33",
+    "mean_ttft_s": "0.0489",
+    "mean_latency_s": "1.5454",
+    "peak_memory_mb": "2262.73",
+    "kv_cache_mb": "1.706",
+    "quality_ok": "True",
+    "measured": "True",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T13:57:50-04:00",
+    "notes": "attention_slicing not exposed by this model; use sdpa mem_efficient backend (exp9) for the same goal."
   }
 ]

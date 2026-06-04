@@ -198,3 +198,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** +0.58% vs best
 - **Lessons learned:** Helps load/peak-RAM; Flash-MoE found mmap bad for COLD per-token expert access, but fine for resident dense weights.
 
+## exp033 — fp16 KV cache, fp32 compute
+
+- **Why attempted:** Store K/V in fp16 to halve cache memory while computing in fp32.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. kv_cache_dtype=float16 requested; approximated via model dtype + static cache where available.
+- **Performance impact:** -14.73% vs best
+- **Lessons learned:** Memory win; small/no speed change for short prompts.
+
