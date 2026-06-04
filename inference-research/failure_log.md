@@ -121,3 +121,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -33.18% vs best
 - **Lessons learned:** Fast tokenizer expected better; this run should regress.
 
+## exp020 — INT8 (bitsandbytes)
+
+- **Why attempted:** 8-bit weights cut memory traffic ~4x vs fp32.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. quantization=int8 via bitsandbytes requires CUDA; not supported on mps. Running unquantized.
+- **Performance impact:** -35.07% vs best
+- **Lessons learned:** bitsandbytes is CUDA-only -> expected UNSUPPORTED on MPS.
+
