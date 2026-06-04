@@ -30,3 +30,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -8.12% vs best
 - **Lessons learned:** Often the single biggest win on Apple GPUs.
 
+## exp005 — bfloat16 weights
+
+- **Why attempted:** bf16 keeps fp32 dynamic range with fp16 bandwidth.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -9.47% vs best
+- **Lessons learned:** Throughput similar to fp16; possibly better numerics.
+

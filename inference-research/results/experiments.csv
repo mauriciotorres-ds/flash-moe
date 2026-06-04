@@ -5,3 +5,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 3,model.eval() isolation,runtime,no_eval(ablation),discard,34.528,36.527,36.527,-5.47,0.0667,2.4353,1894.92,3.411,True,True,MEASURED,mps,2026-06-04T12:30:52-04:00,
 4,float16 weights,quantization,fp16,discard,33.56,36.527,36.527,-8.12,0.0759,2.5059,1989.12,1.694,True,True,MEASURED,mps,2026-06-04T12:32:37-04:00,
 5,bfloat16 weights,quantization,bf16,discard,33.069,36.527,36.527,-9.47,0.0801,2.4228,2066.01,1.685,True,True,MEASURED,mps,2026-06-04T12:34:18-04:00,
+6,SDPA attention,runtime,sdpa,keep,39.8,36.527,36.527,8.96,0.0551,2.1231,1945.08,3.411,True,True,MEASURED,mps,2026-06-04T12:35:46-04:00,
