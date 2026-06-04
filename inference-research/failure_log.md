@@ -86,3 +86,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -15.16% vs best
 - **Lessons learned:** Often best compile mode for autoregressive decode.
 
+## exp015 — torch.compile (max-autotune)
+
+- **Why attempted:** Autotuned kernels maximise throughput.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -16.74% vs best
+- **Lessons learned:** Long compile; may or may not beat reduce-overhead.
+
