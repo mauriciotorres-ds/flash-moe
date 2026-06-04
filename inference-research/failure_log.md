@@ -51,3 +51,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -2.02% vs best
 - **Lessons learned:** Backend-dependent; measure.
 
+## exp009 — SDPA mem-efficient backend
+
+- **Why attempted:** Memory-efficient attention lowers peak memory.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -2.55% vs best
+- **Lessons learned:** May trade a little speed for memory.
+

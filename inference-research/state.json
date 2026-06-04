@@ -1,10 +1,10 @@
 {
   "phase": 1,
-  "current_experiment": 9,
-  "last_completed_experiment": 8,
+  "current_experiment": 10,
+  "last_completed_experiment": 9,
   "baseline_tps": 36.527,
   "best_tps": 39.8,
   "best_config": "exp006",
   "status": "running",
-  "last_updated": "2026-06-04T12:38:44-04:00"
+  "last_updated": "2026-06-04T12:40:13-04:00"
 }

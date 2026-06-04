@@ -208,5 +208,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T12:40:13-04:00",
     "notes": ""
+  },
+  {
+    "exp": "10",
+    "title": "use_cache ablation",
+    "category": "memory",
+    "label": "no_kv_cache(ablation)",
+    "decision": "discard",
+    "mean_tps": "18.232",
+    "baseline_tps": "36.527",
+    "best_tps": "39.8",
+    "delta_pct_vs_best": "-54.19",
+    "mean_ttft_s": "0.086",
+    "mean_latency_s": "5.4203",
+    "peak_memory_mb": "1368.13",
+    "kv_cache_mb": "3.411",
+    "quality_ok": "True",
+    "measured": "True",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T12:43:59-04:00",
+    "notes": ""
   }
 ]

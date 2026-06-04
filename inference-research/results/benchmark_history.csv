@@ -99,3 +99,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 9,sdpa_memeff,struct_json,structured,22,23.89,24.394,0.06,0.9209,1394.56,1394.56,62.62,,1.794,73,mps,True,MEASURED,2026-06-04T12:40:13-04:00
 9,sdpa_memeff,struct_yaml,structured,81,42.472,43.322,0.0605,1.9071,1395.85,1395.85,50.84,,3.244,132,mps,True,MEASURED,2026-06-04T12:40:13-04:00
 9,sdpa_memeff,struct_table,structured,43,45.537,46.483,0.0407,0.9443,1299.84,1299.71,62.17,,2.212,90,mps,True,MEASURED,2026-06-04T12:40:13-04:00
+10,no_kv_cache(ablation),factual_1,factual,77,22.15,22.222,0.0562,3.4762,1295.07,1295.07,56.04,,2.753,112,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),factual_2,factual,21,24.265,24.631,0.0534,0.8654,1299.81,1299.81,66.04,,1.352,55,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),coding_1,coding,125,17.898,17.979,0.0871,6.984,1368.13,1137.48,51.93,,4.129,168,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),coding_2,coding,119,15.912,15.912,0.0626,7.4785,944.82,944.29,51.18,,4.276,174,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),reasoning_1,reasoning,179,11.325,11.32,0.0811,15.8054,1248.23,1247.56,40.69,,6.39,260,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),reasoning_2,reasoning,131,13.186,13.166,0.0607,9.9346,1144.62,1144.62,46.55,,4.571,186,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),summ_1,summarization,45,18.891,20.44,0.2294,2.3821,1142.77,1081.75,57.35,,3.391,138,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),struct_json,structured,22,13.015,13.084,0.0853,1.6904,1158.97,1158.97,64.88,,1.794,73,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),struct_yaml,structured,81,21.114,21.33,0.0857,3.8363,1163.1,1151.94,56.11,,3.244,132,mps,True,MEASURED,2026-06-04T12:43:59-04:00
+10,no_kv_cache(ablation),struct_table,structured,43,24.569,24.823,0.0582,1.7502,1158.59,1158.59,61.86,,2.212,90,mps,True,MEASURED,2026-06-04T12:43:59-04:00
