@@ -128,3 +128,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -35.07% vs best
 - **Lessons learned:** bitsandbytes is CUDA-only -> expected UNSUPPORTED on MPS.
 
+## exp021 — NF4 4-bit (bitsandbytes)
+
+- **Why attempted:** 4-bit weights for maximum memory reduction.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. quantization=nf4 via bitsandbytes requires CUDA; not supported on mps. Running unquantized.
+- **Performance impact:** -32.60% vs best
+- **Lessons learned:** CUDA-only; expected UNSUPPORTED on MPS. Quality risk if forced.
+

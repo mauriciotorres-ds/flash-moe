@@ -21,3 +21,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 19,Slow (Python) tokenizer ablation,runtime,slow_tokenizer(ablation),discard,27.996,36.527,41.898,-33.18,0.0846,2.9594,1735.98,3.411,True,True,MEASURED,mps,2026-06-04T13:17:58-04:00,
 20,INT8 (bitsandbytes),quantization,int8_bnb,discard,27.205,36.527,41.898,-35.07,0.0906,3.6509,1743.57,3.411,True,True,MEASURED,mps,2026-06-04T13:35:47-04:00,quantization=int8 via bitsandbytes requires CUDA; not supported on mps. Running unquantized.
 21,NF4 4-bit (bitsandbytes),quantization,nf4_bnb,discard,28.238,36.527,41.898,-32.6,0.0805,3.0281,1822.64,3.411,True,True,MEASURED,mps,2026-06-04T13:37:48-04:00,quantization=nf4 via bitsandbytes requires CUDA; not supported on mps. Running unquantized.
+22,Prompt batching (bs=4),scheduling,batch4,discard,27.975,36.527,41.898,-33.23,0.0827,3.0324,1838.81,3.411,True,True,MEASURED,mps,2026-06-04T13:39:50-04:00,
