@@ -189,3 +189,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 18,cpu_4threads_pcores,struct_json,structured,22,20.581,21.865,0.1085,1.0689,3458.65,3458.65,139.53,,1.794,73,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
 18,cpu_4threads_pcores,struct_yaml,structured,81,38.632,40.269,0.1101,2.0967,3458.65,3458.65,142.3,,3.244,132,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
 18,cpu_4threads_pcores,struct_table,structured,43,38.579,40.941,0.0887,1.1146,3458.81,3458.81,140.97,,2.212,90,cpu,True,MEASURED,2026-06-04T13:12:34-04:00
+19,slow_tokenizer(ablation),factual_1,factual,77,38.024,38.406,0.0462,2.025,1546.4,1546.4,76.16,,2.753,112,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),factual_2,factual,21,17.993,18.334,0.0763,1.1671,1552.3,1552.3,89.14,,1.352,55,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),coding_1,coding,125,35.849,36.421,0.0823,3.4869,1599.91,1599.91,80.91,,4.129,168,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),coding_2,coding,119,29.026,29.188,0.057,4.0997,1603.14,1603.14,83.31,,4.276,174,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),reasoning_1,reasoning,179,26.991,27.139,0.073,6.6318,1735.1,1735.1,81.56,,6.39,260,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),reasoning_2,reasoning,131,24.906,25.038,0.0677,5.2598,1735.34,1735.34,81.4,,4.571,186,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),summ_1,summarization,45,28.027,31.395,0.2041,1.6056,1735.82,1735.82,84.77,,3.391,138,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),struct_json,structured,22,16.573,16.934,0.0874,1.3275,1735.92,1735.92,80.08,,1.794,73,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),struct_yaml,structured,81,30.629,31.317,0.09,2.6446,1735.95,1735.95,84.36,,3.244,132,mps,True,MEASURED,2026-06-04T13:17:58-04:00
+19,slow_tokenizer(ablation),struct_table,structured,43,31.944,32.718,0.0624,1.3461,1735.98,1735.98,79.75,,2.212,90,mps,True,MEASURED,2026-06-04T13:17:58-04:00

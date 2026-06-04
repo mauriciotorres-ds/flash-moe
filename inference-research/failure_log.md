@@ -107,3 +107,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -17.62% vs best
 - **Lessons learned:** Usually neutral for transformers; measure.
 
+## exp018 — Pin threads to performance cores
+
+- **Why attempted:** On CPU paths, limiting to the 4 P-cores avoids E-core contention.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -19.35% vs best
+- **Lessons learned:** Only relevant if a CPU fallback path is used.
+
