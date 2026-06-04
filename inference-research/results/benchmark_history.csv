@@ -369,3 +369,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 37,compile+sdpa+bf16,struct_json,structured,23,30.895,31.825,0.0532,0.7444,1076.12,1076.12,80.34,,0.909,74,mps,True,MEASURED,2026-06-04T14:00:34-04:00
 37,compile+sdpa+bf16,struct_yaml,structured,70,57.085,58.695,0.0507,1.2262,1076.22,1076.22,82.01,,1.487,121,mps,True,MEASURED,2026-06-04T14:00:34-04:00
 37,compile+sdpa+bf16,struct_table,structured,43,60.011,62.278,0.0421,0.7165,1077.3,1077.3,80.14,,1.106,90,mps,True,MEASURED,2026-06-04T14:00:34-04:00
+38,gen_config_cache,factual_1,factual,63,62.683,64.357,0.0417,1.0051,1431.36,1431.36,82.85,,1.204,98,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,factual_2,factual,21,48.248,50.211,0.0369,0.4352,1434.42,1434.42,120.54,,0.676,55,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,coding_1,coding,104,62.219,63.547,0.0507,1.6715,1454.29,1454.28,82.82,,1.806,147,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,coding_2,coding,94,56.97,57.738,0.0393,1.65,1457.13,1457.13,82.6,,1.831,149,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,reasoning_1,reasoning,140,54.704,55.253,0.0435,2.5592,1462.88,1462.88,82.14,,2.716,221,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,reasoning_2,reasoning,100,50.266,50.719,0.0375,1.9894,1462.96,1462.96,83.8,,1.905,155,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,summ_1,summarization,45,58.14,65.31,0.1003,0.774,1463.76,1463.76,79.61,,1.696,138,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,struct_json,structured,22,32.533,33.924,0.0572,0.6762,1464.48,1464.48,110.06,,0.897,73,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,struct_yaml,structured,79,58.418,59.949,0.0512,1.3523,1464.57,1464.57,79.25,,1.597,130,mps,True,MEASURED,2026-06-04T14:01:29-04:00
+38,gen_config_cache,struct_table,structured,43,48.295,49.778,0.0466,0.8904,1031.72,1031.72,77.63,,1.106,90,mps,True,MEASURED,2026-06-04T14:01:29-04:00

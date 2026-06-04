@@ -219,3 +219,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -5.67% vs best
 - **Lessons learned:** Backend-dependent; measure for MPS.
 
+## exp037 — Compile + SDPA + bf16 stack
+
+- **Why attempted:** Stack the three most promising runtime/precision wins.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -2.48% vs best
+- **Lessons learned:** Either the new best or reveals a bad interaction.
+
