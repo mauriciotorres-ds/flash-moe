@@ -135,3 +135,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -32.60% vs best
 - **Lessons learned:** CUDA-only; expected UNSUPPORTED on MPS. Quality risk if forced.
 
+## exp022 — Prompt batching (bs=4)
+
+- **Why attempted:** Batching amortises kernel launches across prompts.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -33.23% vs best
+- **Lessons learned:** Improves throughput, not single-stream latency.
+
