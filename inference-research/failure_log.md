@@ -170,3 +170,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -17.10% vs best
 - **Lessons learned:** Lowers latency on prompts that finish early.
 
+## exp027 — Persistent engine reuse (no reload)
+
+- **Why attempted:** Keeping the model resident + extra warmup yields steady-state tok/s.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -19.17% vs best
+- **Lessons learned:** Improves measured steady-state; standard serving practice.
+
