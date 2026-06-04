@@ -223,7 +223,14 @@ class ConfigurableEngine:
             kw["eos_token_id"] = self.tokenizer.eos_token_id
         if cfg.do_sample:
             kw.update(temperature=cfg.temperature, top_p=cfg.top_p, top_k=cfg.top_k)
-        if cfg.cache_implementation in ("static", "offloaded"):
+        if cfg.cache_implementation == "offloaded" and self.device == "mps":
+            # OffloadedCache calls torch.cuda.default_stream() internally
+            # which requires CUDA and is not available on MPS.
+            self.support_notes.append(
+                "cache_implementation='offloaded' requires CUDA; "
+                "not supported on MPS. Running with dynamic cache."
+            )
+        elif cfg.cache_implementation in ("static", "offloaded"):
             kw["cache_implementation"] = cfg.cache_implementation
         if self.assistant_model is not None:
             kw["assistant_model"] = self.assistant_model
@@ -260,9 +267,19 @@ class ConfigurableEngine:
         sw = Stopwatch().start()
         sampler.start()
 
+        thread_exc: list = []
+
         def _run():
-            with self._inference_ctx():
-                self.model.generate(**gen_kwargs)
+            try:
+                with self._inference_ctx():
+                    self.model.generate(**gen_kwargs)
+            except Exception as e:
+                thread_exc.append(e)
+                # Signal the streamer to unblock by ending the queue.
+                try:
+                    streamer.end()
+                except Exception:
+                    pass
 
         thread = threading.Thread(target=_run, daemon=True)
         thread.start()
@@ -277,9 +294,13 @@ class ConfigurableEngine:
             n_tokens += 1
             yield chunk, self._partial_metrics(prompt, prompt_tokens, n_tokens, sw, sampler)
 
-        thread.join()
+        thread.join(timeout=30)
         sw.stop()
         sampler.stop()
+        if thread_exc:
+            exc = thread_exc[0]
+            note = f"generation failed: {type(exc).__name__}: {exc}"
+            self.support_notes.append(note)
         m = self._finalize(prompt, prompt_tokens, n_tokens, "".join(produced), sw, sampler)
         yield "", m
 
