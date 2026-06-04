@@ -26,3 +26,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 24,Speculative decoding (draft model),decoding,speculative,discard,6.199,36.527,41.898,-85.2,0.3157,2.5477,1448.28,1.656,True,True,MEASURED,mps,2026-06-04T13:44:45-04:00,
 25,Greedy vs sampling cost,decoding,greedy_decode,discard,35.096,36.527,41.898,-16.23,0.0677,2.4238,2264.53,3.411,True,True,MEASURED,mps,2026-06-04T13:46:24-04:00,
 26,Early EOS stopping,decoding,early_eos,discard,34.734,36.527,41.898,-17.1,0.0657,2.4775,1747.81,3.411,True,True,MEASURED,mps,2026-06-04T13:48:07-04:00,
+27,Persistent engine reuse (no reload),system,warm_persistent,discard,33.866,36.527,41.898,-19.17,0.0657,2.4919,1564.87,3.411,True,True,MEASURED,mps,2026-06-04T13:50:16-04:00,

@@ -163,3 +163,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -16.23% vs best
 - **Lessons learned:** Greedy slightly faster; default decode for benchmarking.
 
+## exp026 — Early EOS stopping
+
+- **Why attempted:** Stop as soon as EOS is produced instead of padding to max.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -17.10% vs best
+- **Lessons learned:** Lowers latency on prompts that finish early.
+
