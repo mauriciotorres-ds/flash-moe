@@ -23,3 +23,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -5.47% vs best
 - **Lessons learned:** eval() expected better; this run should be slower/worse quality.
 
+## exp004 — float16 weights
+
+- **Why attempted:** Half precision halves memory traffic; MPS has fast fp16 paths.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -8.12% vs best
+- **Lessons learned:** Often the single biggest win on Apple GPUs.
+

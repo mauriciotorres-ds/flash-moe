@@ -103,5 +103,26 @@
     "device": "mps",
     "timestamp": "2026-06-04T12:32:37-04:00",
     "notes": ""
+  },
+  {
+    "exp": "5",
+    "title": "bfloat16 weights",
+    "category": "quantization",
+    "label": "bf16",
+    "decision": "discard",
+    "mean_tps": "33.069",
+    "baseline_tps": "36.527",
+    "best_tps": "36.527",
+    "delta_pct_vs_best": "-9.47",
+    "mean_ttft_s": "0.0801",
+    "mean_latency_s": "2.4228",
+    "peak_memory_mb": "2066.01",
+    "kv_cache_mb": "1.685",
+    "quality_ok": "True",
+    "measured": "True",
+    "data_source": "MEASURED",
+    "device": "mps",
+    "timestamp": "2026-06-04T12:34:18-04:00",
+    "notes": ""
   }
 ]

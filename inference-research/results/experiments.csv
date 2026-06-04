@@ -4,3 +4,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 2,torch.inference_mode() context,runtime,inference_mode,discard,36.185,36.527,36.527,-0.94,0.0649,2.321,1549.5,3.411,True,True,MEASURED,mps,2026-06-04T12:29:13-04:00,
 3,model.eval() isolation,runtime,no_eval(ablation),discard,34.528,36.527,36.527,-5.47,0.0667,2.4353,1894.92,3.411,True,True,MEASURED,mps,2026-06-04T12:30:52-04:00,
 4,float16 weights,quantization,fp16,discard,33.56,36.527,36.527,-8.12,0.0759,2.5059,1989.12,1.694,True,True,MEASURED,mps,2026-06-04T12:32:37-04:00,
+5,bfloat16 weights,quantization,bf16,discard,33.069,36.527,36.527,-9.47,0.0801,2.4228,2066.01,1.685,True,True,MEASURED,mps,2026-06-04T12:34:18-04:00,
