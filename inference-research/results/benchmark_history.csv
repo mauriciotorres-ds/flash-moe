@@ -149,3 +149,13 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,decode_tokens_pe
 14,compile_reduce_ovh,struct_json,structured,22,22.597,23.197,0.0683,0.9736,1201.65,1201.62,80.26,,1.794,73,mps,True,MEASURED,2026-06-04T13:05:54-04:00
 14,compile_reduce_ovh,struct_yaml,structured,81,40.642,41.533,0.0668,1.993,1202.14,1202.14,78.85,,3.244,132,mps,True,MEASURED,2026-06-04T13:05:54-04:00
 14,compile_reduce_ovh,struct_table,structured,43,41.59,42.591,0.0478,1.0339,1210.34,1210.34,80.63,,2.212,90,mps,True,MEASURED,2026-06-04T13:05:54-04:00
+15,compile_max_autotune,factual_1,factual,77,39.954,40.419,0.0469,1.9272,1411.99,1411.99,79.32,,2.753,112,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,factual_2,factual,21,34.089,35.073,0.0458,0.616,1416.07,1416.07,83.0,,1.352,55,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,coding_1,coding,125,39.631,40.157,0.0662,3.1541,1421.79,1421.79,78.06,,4.129,168,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,coding_2,coding,119,37.762,38.044,0.0496,3.1513,1424.56,1424.56,77.42,,4.276,174,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,reasoning_1,reasoning,179,34.675,34.87,0.0576,5.1623,1430.37,1430.37,75.8,,6.39,260,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,reasoning_2,reasoning,131,32.384,32.529,0.0488,4.0452,1431.14,1431.14,77.26,,4.571,186,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,summ_1,summarization,45,33.284,36.949,0.1612,1.352,1370.1,1370.1,74.85,,3.391,138,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,struct_json,structured,22,20.204,21.023,0.09,1.0889,1371.24,1371.24,77.24,,1.794,73,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,struct_yaml,structured,81,38.776,39.625,0.07,2.0889,1371.68,1371.68,78.82,,3.244,132,mps,True,MEASURED,2026-06-04T13:07:31-04:00
+15,compile_max_autotune,struct_table,structured,43,38.089,39.01,0.0523,1.1289,1372.36,1372.36,78.3,,2.212,90,mps,True,MEASURED,2026-06-04T13:07:31-04:00
