@@ -233,3 +233,10 @@ Discarded experiments and why. Failures are data.
 - **Performance impact:** -2.30% vs best
 - **Lessons learned:** E-cores may add contention; compare to exp18.
 
+## exp042 — Final stacked best-of-all
+
+- **Why attempted:** Apply every validated win together as the optimized engine candidate.
+- **Why it failed / was discarded:** Did not beat current best by >= 1% or degraded quality. 
+- **Performance impact:** -3.29% vs best
+- **Lessons learned:** Should equal or beat every individual experiment.
+

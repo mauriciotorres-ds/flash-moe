@@ -11,13 +11,11 @@ observability dashboard.
 **Phase-2 validation model:** Qwen3.5-397B-A17B (via the Flash-MoE Metal engine).
 
 > ### About the numbers currently on disk
-> The repository is seeded with **SAMPLE_SYNTHETIC** results so the dashboard,
-> plots, and report are demoable immediately. **They are not real
-> measurements** — every row is flagged `measured=false`, and the dashboard and
-> plots display a clear SAMPLE banner/watermark. Producing real numbers requires
-> running the model on your Mac's GPU (it can't be done in a CPU sandbox, and
-> the spec forbids fabricating results). To replace the sample data with real
-> measurements:
+> All results are **MEASURED** on an Apple M4 · 24 GB Mac (run 2026-06-04/05).
+> Every row is flagged `measured=true`, the dashboard shows a GREEN banner, and
+> the plots carry no watermark. Baseline: **36.527 tok/s**. Best config:
+> **exp041 (dynamic batching) at 56.612 tok/s** (1.55× speedup). 8 experiments
+> kept, 34 discarded, 1 N/A (MoE-only). To reproduce from scratch:
 > ```bash
 > rm -f results/*.csv results/*.json state.json failure_log.md experiments/exp*.md
 > python run_experiments.py --mode real --device mps

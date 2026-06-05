@@ -1,0 +1,35 @@
+{
+  "research_question": "Do small-model optimizations transfer to a 397B MoE?",
+  "large_model": "Qwen3.5-397B-A17B (Flash-MoE Metal engine)",
+  "hardware_target": "Apple M4 \u00b7 24 GB unified memory",
+  "transfer_map": [
+    {
+      "small_model_win": "fp16/4-bit weights (memory-bandwidth bound)",
+      "moe_equivalent": "4-bit packed experts",
+      "flag": "(default)"
+    },
+    {
+      "small_model_win": "static cache / fused decode (torch.compile)",
+      "moe_equivalent": "FMA-fused dequant Metal kernel",
+      "flag": "(built-in)"
+    },
+    {
+      "small_model_win": "mmap/lazy weight load, trust OS page cache",
+      "moe_equivalent": "Trust-OS page cache for expert streaming",
+      "flag": "(built-in)"
+    },
+    {
+      "small_model_win": "greedy decode, early EOS",
+      "moe_equivalent": "single-stream decode w/ tool-calling JSON intact (4-bit)",
+      "flag": "(default)"
+    },
+    {
+      "small_model_win": "SDPA fused attention",
+      "moe_equivalent": "batched GPU attention kernel (full-attn layers)",
+      "flag": "(built-in)"
+    }
+  ],
+  "metal_infer_found": false,
+  "timestamp": "2026-06-05T11:31:33",
+  "note": "metal_infer/infer not built. Build it on your Mac:\n  cd ../metal_infer && make\nthen re-run:  python large_model/validate_transfer.py\nThis harness will then benchmark the 4-bit baseline vs optimized MoE config and record tok/s + page-cache hit rate."
+}

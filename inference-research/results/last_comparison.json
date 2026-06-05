@@ -1,0 +1,8 @@
+{
+  "baseline_tps": 35.907,
+  "optimized_tps": 56.114,
+  "speedup": 1.563,
+  "device": "mps",
+  "timestamp": "2026-06-05T11:29:21-04:00",
+  "data_source": "MEASURED"
+}
