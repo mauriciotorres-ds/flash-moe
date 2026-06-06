@@ -37,7 +37,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
-METAL_INFER = os.path.normpath(os.path.join(PROJECT, "..", "metal_infer"))
+METAL_INFER = os.path.normpath(os.path.join(PROJECT, "..", "reference", "metal_infer"))
 RESULTS = os.path.join(PROJECT, "results")
 os.makedirs(RESULTS, exist_ok=True)
 
