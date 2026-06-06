@@ -81,7 +81,7 @@ This method is particularly useful when dealing with large datasets where tradit
 **Output quality difference (any):**
 > None — the content is word-for-word identical for the text both engines produced. The optimized engine simply stopped 34 tokens earlier because fp16 arithmetic produces slightly different logit values near EOS, triggering the stop token sooner. The meaning is fully preserved.
 
-### What we're seeing in these two runs
+### What we're seeing in these two r
 
 Both engines received the exact same prompt and parameters, so any difference is purely the effect of the optimization stack. The tok/s gap is the headline number — the optimized engine decoded at **3.21× the rate** (25.7 vs 8.0 tok/s). However, the total elapsed time only improved by 0.3 seconds (3.39s vs 3.65s), which looks underwhelming at first glance. The reason is the **TTFT tradeoff**: the optimized engine's first token took 1.386s versus 0.124s for baseline. That 1.26-second penalty at the start is a one-time warmup cost from loading fp16 weights and initializing the SDPA kernel on a fresh engine instance — in a real serving scenario where the model stays loaded between requests, this cost disappears entirely and you see the full 3× speedup on every subsequent prompt. The other notable result is memory: the optimized engine used **237 MB less RAM** (1203 vs 1441 MB) because fp16 weights are half the size of fp32, which is the same bandwidth-reduction principle behind the original Flash-MoE project's 4-bit expert packing.
 
