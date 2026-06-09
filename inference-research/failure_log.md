@@ -158,3 +158,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=98.9824 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp029 — Best GPU + n_batch=1024
+
+- **Why attempted:** Larger batch on best GPU config improves prompt processing.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=98.7484 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
