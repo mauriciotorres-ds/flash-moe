@@ -186,3 +186,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=98.9796 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp033 — Longer generation (max_new_tokens=256)
+
+- **Why attempted:** Longer generation shows steady-state tok/s once KV cache is warm and expert pages are cached.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=98.2049 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+

@@ -32,3 +32,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 30,"Greedy decode (temp=0, top_k=1) — confirm baseline",decoding,exp030,discard,98.599,51.2465,98.9629,-0.37,0.0104,1.215,9699.69,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:03:29-04:00,
 31,"Sampling (temp=0.7, top_k=50, top_p=0.9)",decoding,exp031,discard,98.5137,51.2465,98.9629,-0.45,0.0104,1.1697,9717.4,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:03:56-04:00,
 32,top_k=1 (forced greedy via sampling),decoding,exp032,discard,98.9796,51.2465,98.9629,0.02,0.0105,1.2063,9723.04,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:04:23-04:00,
+33,Longer generation (max_new_tokens=256),decoding,exp033,discard,98.2049,51.2465,98.9629,-0.77,0.0107,1.2124,9727.36,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:04:51-04:00,
