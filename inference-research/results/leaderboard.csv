@@ -1,4 +1,5 @@
 rank,exp,label,mean_tps,delta_pct_vs_baseline,decision,data_source
-1,8,exp008,61.7317,20.46,keep,measured
-2,4,exp004,58.2281,13.62,keep,measured
-3,0,exp000,51.2465,0.0,keep,measured
+1,11,exp011,64.9811,26.8,keep,measured
+2,8,exp008,61.7317,20.46,keep,measured
+3,4,exp004,58.2281,13.62,keep,measured
+4,0,exp000,51.2465,0.0,keep,measured
