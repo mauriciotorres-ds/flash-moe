@@ -4,3 +4,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 2,mmap + mlock — pin expert pages in RAM,ssd_streaming,exp002,discard,43.6297,51.2465,51.2465,-14.86,0.2636,3.3435,16760.27,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:40:20-04:00,
 3,No mmap + mlock (all weights locked in RAM),ssd_streaming,exp003,discard,50.2638,51.2465,51.2465,-1.92,0.0293,2.4656,9460.02,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:41:21-04:00,
 4,"Warm cache run (second inference, same process)",ssd_streaming,exp004,keep,58.2281,51.2465,58.2281,0.0,0.0503,2.1626,15648.11,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:42:22-04:00,
+5,n_batch=128 — smaller expert read batch,ssd_streaming,exp005,discard,55.5806,51.2465,58.2281,-4.55,0.0171,2.1428,15489.75,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:43:23-04:00,
