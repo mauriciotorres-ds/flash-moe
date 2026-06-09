@@ -109,3 +109,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=56.2615 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp022 — n_threads=12 (all logical CPUs)
+
+- **Why attempted:** Using all logical CPUs saturates the CPU scheduler; may compete with the Metal command queue.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=57.5837 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+

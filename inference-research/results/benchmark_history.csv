@@ -21,3 +21,4 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,time_to_first_to
 19,exp019,aggregate,threading,,,,1.8498,13212.02,,,,513.191,,,cpu,True,measured,2026-06-09T11:56:27-04:00
 20,exp020,aggregate,threading,,,,1.3998,14429.68,,,,513.191,,,cpu,True,measured,2026-06-09T11:57:11-04:00
 21,exp021,aggregate,threading,,,,2.2098,14301.79,,,,513.191,,,cpu,True,measured,2026-06-09T11:58:15-04:00
+22,exp022,aggregate,threading,,,,2.0973,14800.73,,,,513.191,,,cpu,True,measured,2026-06-09T11:59:16-04:00
