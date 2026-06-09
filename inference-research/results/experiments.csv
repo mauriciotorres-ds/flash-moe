@@ -22,3 +22,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 20,n_threads=8,threading,exp020,discard,87.4921,51.2465,98.9629,-11.59,0.0114,1.3998,14429.68,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:57:11-04:00,
 21,n_threads=12,threading,exp021,discard,56.2615,51.2465,98.9629,-43.15,0.0165,2.2098,14301.79,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:58:15-04:00,
 22,n_threads=12 (all logical CPUs),threading,exp022,discard,57.5837,51.2465,98.9629,-41.81,0.0156,2.0973,14800.73,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:59:16-04:00,
+23,flash_attn=True on CPU,attention,exp023,discard,57.6228,51.2465,98.9629,-41.77,0.0477,2.0277,14472.61,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T12:00:15-04:00,
