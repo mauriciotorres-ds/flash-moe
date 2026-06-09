@@ -206,5 +206,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T11:45:22-04:00",
     "notes": ""
+  },
+  {
+    "exp": "8",
+    "title": "n_ctx=512 \u2014 minimal context, small KV cache",
+    "category": "ssd_streaming",
+    "label": "exp008",
+    "decision": "keep",
+    "mean_tps": "61.7317",
+    "baseline_tps": "51.2465",
+    "best_tps": "61.7317",
+    "delta_pct_vs_best": "0.0",
+    "mean_ttft_s": "0.0164",
+    "mean_latency_s": "1.9937",
+    "peak_memory_mb": "15393.63",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "cpu",
+    "timestamp": "2026-06-09T11:46:19-04:00",
+    "notes": ""
   }
 ]
