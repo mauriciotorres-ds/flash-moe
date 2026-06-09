@@ -18,3 +18,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=43.6297 vs best=51.2465
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp003 — No mmap + mlock (all weights locked in RAM)
+
+- **Why attempted:** Full eager load + locked pages eliminates all SSD I/O after load.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=50.2638 vs best=51.2465
+- **Lessons learned:** Config delta did not help on this hardware.
+
