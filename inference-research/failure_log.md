@@ -144,3 +144,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=99.0712 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp027 — Best GPU + mlock + flash_attn
+
+- **Why attempted:** Locking pages + flash attn on top of best GPU config.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=99.0691 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
