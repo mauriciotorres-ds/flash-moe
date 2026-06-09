@@ -14,3 +14,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 12,n_gpu_layers=20 — half layers on Metal,gpu_offload,exp012,keep,74.6587,51.2465,74.6587,0.0,0.059,1.6618,11142.85,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:50:44-04:00,
 13,n_gpu_layers=-1 — all layers on Metal GPU,gpu_offload,exp013,keep,95.5518,51.2465,95.5518,0.0,0.0107,1.2352,9621.64,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:51:12-04:00,
 14,n_gpu_layers=-1 + flash_attn=True,gpu_offload,exp014,keep,98.9629,51.2465,98.9629,0.0,0.0104,1.2076,9649.52,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:51:40-04:00,
+15,n_gpu_layers=30 + flash_attn=True,gpu_offload,exp015,discard,99.1176,51.2465,98.9629,0.16,0.0104,1.2063,9679.1,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:52:07-04:00,
