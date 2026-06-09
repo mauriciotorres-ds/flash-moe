@@ -31,3 +31,4 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,time_to_first_to
 29,exp029,aggregate,combo,,,,1.2092,9698.97,,,,513.191,,,metal,True,measured,2026-06-09T12:03:02-04:00
 30,exp030,aggregate,decoding,,,,1.215,9699.69,,,,513.191,,,metal,True,measured,2026-06-09T12:03:29-04:00
 31,exp031,aggregate,decoding,,,,1.1697,9717.4,,,,513.191,,,metal,True,measured,2026-06-09T12:03:56-04:00
+32,exp032,aggregate,decoding,,,,1.2063,9723.04,,,,513.191,,,metal,True,measured,2026-06-09T12:04:23-04:00

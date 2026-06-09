@@ -179,3 +179,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=98.5137 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp032 — top_k=1 (forced greedy via sampling)
+
+- **Why attempted:** Low temperature with top_k=1 approximates greedy with negligible sampling cost.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=98.9796 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
