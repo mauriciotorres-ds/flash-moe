@@ -46,3 +46,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=57.3486 vs best=58.2281
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp009 — n_ctx=4096 — larger context window
+
+- **Why attempted:** Larger context increases KV cache pressure and may slow expert streaming by reducing page cache headroom.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=40.1689 vs best=61.7317
+- **Lessons learned:** Config delta did not help on this hardware.
+

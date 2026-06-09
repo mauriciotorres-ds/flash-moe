@@ -232,5 +232,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T11:46:19-04:00",
     "notes": ""
+  },
+  {
+    "exp": "9",
+    "title": "n_ctx=4096 \u2014 larger context window",
+    "category": "ssd_streaming",
+    "label": "exp009",
+    "decision": "discard",
+    "mean_tps": "40.1689",
+    "baseline_tps": "51.2465",
+    "best_tps": "61.7317",
+    "delta_pct_vs_best": "-34.93",
+    "mean_ttft_s": "0.1122",
+    "mean_latency_s": "3.239",
+    "peak_memory_mb": "12860.28",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "cpu",
+    "timestamp": "2026-06-09T11:47:52-04:00",
+    "notes": ""
   }
 ]
