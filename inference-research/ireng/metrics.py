@@ -1,84 +1,148 @@
-"""Metrics collection for inference benchmarking.
+"""metrics.py — Telemetry for MoE inference benchmarking.
 
-Captures everything the spec asks for:
-  tokens generated, tokens/sec, time-to-first-token, total latency,
-  peak & current memory, CPU utilisation, GPU utilisation, KV cache size,
-  context length.
-
-All values come from real execution (psutil + torch). Where a metric cannot
-be obtained on a given backend (e.g. GPU utilisation on Apple MPS), it is
-reported as ``None`` and labelled accordingly — never fabricated.
+Per spec, every generation records:
+  - total_runtime_s       end-to-end wall-clock time
+  - tokens_per_second     tokens ÷ total_runtime_s
+  - expert_selection      per-step, per-layer top-K expert indices
+  - expert_bytes_per_tok  bytes of expert weights read per token (streaming)
+  - page_cache_hit_rate   OS page cache hit rate for expert reads (estimated)
+  - Plus: TTFT, peak memory, CPU%, context length, etc.
 """
 from __future__ import annotations
 
 import threading
 import time
 from dataclasses import dataclass, field, asdict
-from typing import List, Optional, Dict, Any
+from typing import Any, Optional
+
+# ── Expert selection record ───────────────────────────────────────────────────
+
+@dataclass
+class ExpertSelectionStep:
+    """Router decisions for one decoding step across all MoE layers."""
+    step: int
+    # layer_idx → list of top-K expert indices chosen
+    layer_experts: dict[int, list[int]] = field(default_factory=dict)
+    # layer_idx → list of routing weights (probabilities), if available
+    layer_weights: dict[int, list[float]] = field(default_factory=dict)
 
 
 @dataclass
+class ExpertStats:
+    """Aggregated expert utilisation across an entire generation."""
+    n_experts:      int = 0
+    n_experts_used: int = 0   # top-K
+    n_moe_layers:   int = 0
+    # expert_id → number of times selected across all steps and layers
+    activation_counts: dict[int, int] = field(default_factory=dict)
+    # Available only when per-step data was captured
+    per_step: list[ExpertSelectionStep] = field(default_factory=list)
+
+    def top_experts(self, n: int = 10) -> list[tuple[int, int]]:
+        sorted_experts = sorted(self.activation_counts.items(),
+                                key=lambda x: x[1], reverse=True)
+        return sorted_experts[:n]
+
+    def utilization_rate(self) -> float:
+        """Fraction of all experts that were ever activated."""
+        if not self.n_experts:
+            return 0.0
+        return len(self.activation_counts) / self.n_experts
+
+    def to_dict(self) -> dict:
+        return {
+            "n_experts": self.n_experts,
+            "n_experts_used": self.n_experts_used,
+            "n_moe_layers": self.n_moe_layers,
+            "activation_counts": self.activation_counts,
+            "utilization_rate": round(self.utilization_rate(), 4),
+            "top_10_experts": self.top_experts(10),
+        }
+
+
+# ── Main result dataclass ─────────────────────────────────────────────────────
+
+@dataclass
 class GenerationMetrics:
-    prompt_id: str = ""
-    category: str = ""
+    prompt_id:   str = ""
+    category:    str = ""
+    model_id:    str = ""
+    engine_label: str = ""
+
+    # Token counts
     tokens_generated: int = 0
-    prompt_tokens: int = 0
-    context_length: int = 0
+    prompt_tokens:    int = 0
+    context_length:   int = 0
+
+    # Timing  (spec: total_runtime_s is mandatory)
+    total_runtime_s:       float          = 0.0
     time_to_first_token_s: Optional[float] = None
-    total_latency_s: float = 0.0
-    tokens_per_second: float = 0.0
-    decode_tokens_per_second: float = 0.0   # excludes prefill/TTFT
-    peak_memory_mb: Optional[float] = None
+    tokens_per_second:     float          = 0.0
+
+    # Memory
+    peak_memory_mb:    Optional[float] = None
     current_memory_mb: Optional[float] = None
+
+    # Hardware utilisation
     cpu_utilization_pct: Optional[float] = None
-    gpu_utilization_pct: Optional[float] = None
+    gpu_utilization_pct: Optional[float] = None   # None on MPS
+
+    # KV cache
     kv_cache_mb: Optional[float] = None
-    device: str = ""
+
+    # Expert streaming  (spec: expert_selection is mandatory)
+    expert_bytes_per_tok:  Optional[float] = None   # avg bytes read per token
+    page_cache_hit_rate:   Optional[float] = None   # 0–1
+    expert_stats: Optional[ExpertStats]    = None
+
     output_text: str = ""
+    device:      str = ""
 
-    def as_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+    def as_dict(self) -> dict[str, Any]:
+        d = asdict(self)
+        # Flatten expert_stats for CSV/JSON storage
+        if self.expert_stats:
+            d["expert_stats"] = self.expert_stats.to_dict()
+        return d
 
+    # Alias kept for dashboard compatibility
+    @property
+    def total_latency_s(self) -> float:
+        return self.total_runtime_s
+
+    @property
+    def mean_tps(self) -> float:
+        return self.tokens_per_second
+
+
+# ── Background resource sampler ───────────────────────────────────────────────
 
 class ResourceSampler:
-    """Background sampler for CPU%, RSS memory, and (when available) GPU%.
+    """Samples CPU%, RSS, and (where available) GPU% in a background thread."""
 
-    Usage:
-        s = ResourceSampler(device="mps"); s.start()
-        ... run generation ...
-        s.stop(); summary = s.summary()
-    """
-
-    def __init__(self, device: str = "cpu", interval: float = 0.1):
-        self.device = device
-        self.interval = interval
+    def __init__(self, interval: float = 0.15):
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
-        self.cpu_samples: List[float] = []
-        self.mem_samples_mb: List[float] = []
-        self.gpu_samples: List[float] = []
+        self.interval = interval
+        self.cpu_samples:    list[float] = []
+        self.mem_samples_mb: list[float] = []
         self._proc = None
         try:
             import psutil
-
             self._proc = psutil.Process()
-            self._proc.cpu_percent(None)  # prime the first reading
+            self._proc.cpu_percent(None)   # prime the counter
         except Exception:
-            self._proc = None
+            pass
 
     def _loop(self):
-        from .hardware import gpu_utilization
-
         while not self._stop.is_set():
-            if self._proc is not None:
+            if self._proc:
                 try:
                     self.cpu_samples.append(self._proc.cpu_percent(None))
-                    self.mem_samples_mb.append(self._proc.memory_info().rss / 1e6)
+                    self.mem_samples_mb.append(
+                        self._proc.memory_info().rss / 1_048_576)
                 except Exception:
                     pass
-            g = gpu_utilization(self.device)
-            if g is not None:
-                self.gpu_samples.append(g)
             self._stop.wait(self.interval)
 
     def start(self):
@@ -88,52 +152,28 @@ class ResourceSampler:
 
     def stop(self):
         self._stop.set()
-        if self._thread is not None:
+        if self._thread:
             self._thread.join(timeout=2)
 
-    def summary(self) -> Dict[str, Optional[float]]:
-        def _avg(xs):
-            return round(sum(xs) / len(xs), 2) if xs else None
-
-        def _max(xs):
-            return round(max(xs), 2) if xs else None
-
+    def summary(self) -> dict[str, Optional[float]]:
+        def _avg(xs): return round(sum(xs) / len(xs), 2) if xs else None
+        def _max(xs): return round(max(xs), 2) if xs else None
         return {
             "cpu_utilization_pct": _avg(self.cpu_samples),
-            "current_memory_mb": round(self.mem_samples_mb[-1], 2) if self.mem_samples_mb else None,
-            "peak_memory_mb": _max(self.mem_samples_mb),
-            "gpu_utilization_pct": _avg(self.gpu_samples),  # None on MPS/CPU
+            "current_memory_mb":   round(self.mem_samples_mb[-1], 2) if self.mem_samples_mb else None,
+            "peak_memory_mb":      _max(self.mem_samples_mb),
         }
 
 
-def kv_cache_mb(model_config, prompt_tokens: int, generated_tokens: int, dtype_bytes: int = 4) -> Optional[float]:
-    """Estimate KV-cache size in MB from model architecture.
-
-    size = 2 (K+V) * layers * heads_kv * head_dim * seq_len * dtype_bytes
-    Uses GQA-aware num_key_value_heads when present.
-    """
-    try:
-        layers = getattr(model_config, "num_hidden_layers")
-        hidden = getattr(model_config, "hidden_size")
-        n_heads = getattr(model_config, "num_attention_heads")
-        n_kv = getattr(model_config, "num_key_value_heads", n_heads)
-        head_dim = hidden // n_heads
-        seq = prompt_tokens + generated_tokens
-        total = 2 * layers * n_kv * head_dim * seq * dtype_bytes
-        return round(total / 1e6, 3)
-    except Exception:
-        return None
-
+# ── Stopwatch ─────────────────────────────────────────────────────────────────
 
 class Stopwatch:
-    """Tiny monotonic timer with a first-token marker for TTFT."""
-
     def __init__(self):
-        self.start_t = None
-        self.first_token_t = None
-        self.end_t = None
+        self.start_t:       Optional[float] = None
+        self.first_token_t: Optional[float] = None
+        self.end_t:         Optional[float] = None
 
-    def start(self):
+    def start(self) -> "Stopwatch":
         self.start_t = time.perf_counter()
         return self
 
@@ -146,12 +186,12 @@ class Stopwatch:
 
     @property
     def ttft(self) -> Optional[float]:
-        if self.start_t is None or self.first_token_t is None:
-            return None
-        return self.first_token_t - self.start_t
+        if self.start_t and self.first_token_t:
+            return round(self.first_token_t - self.start_t, 4)
+        return None
 
     @property
     def total(self) -> float:
-        if self.start_t is None or self.end_t is None:
-            return 0.0
-        return self.end_t - self.start_t
+        if self.start_t and self.end_t:
+            return round(self.end_t - self.start_t, 4)
+        return 0.0

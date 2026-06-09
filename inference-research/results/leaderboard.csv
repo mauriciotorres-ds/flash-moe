@@ -1,9 +1,0 @@
-rank,exp,label,mean_tps,delta_pct_vs_baseline,decision,data_source
-1,41,dynamic_batch,56.612,54.99,keep,MEASURED
-2,40,batch_tokenize,55.537,52.04,keep,MEASURED
-3,35,adaptive_maxtok,54.164,48.28,keep,MEASURED
-4,30,sdpa+fp16,53.75,47.15,keep,MEASURED
-5,38,gen_config_cache,53.248,45.78,keep,MEASURED
-6,11,static_cache,41.898,14.7,keep,MEASURED
-7,6,sdpa,39.8,8.96,keep,MEASURED
-8,0,baseline,36.527,0.0,keep,MEASURED

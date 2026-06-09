@@ -1,308 +1,381 @@
-"""The experiment registry — 42 runnable experiments (spec requires >= 40).
+"""experiments.py — 40 MoE expert-streaming experiment definitions.
 
-Each experiment is a *delta* of config knobs plus research metadata. It is NOT
-a result: the keep/discard decision is produced by the runner from real
-measurements on the host (Apple M4 target). `base` controls whether the delta
-is applied on top of the current best config ("best", the autoresearch default
-— experiments build on prior wins) or on the clean baseline ("baseline", for
-isolating a single knob's effect).
+Per the spec, the experiment cycle runs on Qwen1.5-MoE-A2.7B (Small tier)
+only.  The core technique is expert streaming from GGUF on SSD via mmap/pread.
+Experiments target the expert-streaming hot path first, then GPU offload,
+then threading, attention, and finally decoding/context trade-offs.
 
-Categories mirror the spec: runtime, memory, quantization, scheduling,
-decoding, system, ssd_streaming.
+Each Experiment is metadata + config overrides.  The keep/discard decision
+is made by the runner from real benchmark measurements, never predetermined.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import Any
+
+_N_CPU = os.cpu_count() or 10
 
 
 @dataclass(frozen=True)
 class Experiment:
-    exp: int
-    title: str
-    category: str
-    base: str                 # "best" | "baseline"
-    overrides: Dict[str, Any]
+    exp:        int
+    title:      str
+    category:   str
+    # "baseline" = always diff against exp000 baseline config
+    # "best"     = diff against current best (autoresearch stacking)
+    base:       str
+    overrides:  dict[str, Any]
     hypothesis: str
-    rationale: str            # which bottleneck it targets / why now
-    prior: str = ""           # expectation (a prior, never a fabricated result)
+    rationale:  str
     expect_quality_risk: bool = False
-    expect_unsupported_on: str = ""   # e.g. "mps" — documents likely fallback
 
 
-REGISTRY: List[Experiment] = [
-    Experiment(1, "torch.no_grad() context", "runtime", "baseline",
-        {"no_grad": True, "label": "no_grad"},
-        "Disabling autograd bookkeeping reduces per-step overhead.",
-        "Generation never needs gradients; baseline leaves autograd active.",
-        prior="Small but free win on most backends."),
+# ── Experiment registry ───────────────────────────────────────────────────────
 
-    Experiment(2, "torch.inference_mode() context", "runtime", "best",
-        {"inference_mode": True, "no_grad": False, "label": "inference_mode"},
-        "inference_mode is stricter than no_grad and skips version counters.",
-        "Targets per-token Python/ATen overhead, the dominant cost at 0.5B.",
-        prior="Usually >= no_grad; expected to replace it."),
+EXPERIMENTS: list[Experiment] = [
 
-    Experiment(3, "model.eval() isolation", "runtime", "baseline",
-        {"eval_mode": False, "label": "no_eval(ablation)"},
-        "Leaving train mode on enables dropout/other train-time paths.",
-        "Ablation to confirm eval() matters and the harness detects it.",
-        prior="eval() expected better; this run should be slower/worse quality.",
-        expect_quality_risk=True),
+    # ── 0: Baseline ────────────────────────────────────────────────────────
+    Experiment(
+        exp=0, title="Baseline (mmap=True, CPU-only, no flash-attn)",
+        category="ssd_streaming", base="baseline",
+        overrides={},
+        hypothesis="Establish reproducible baseline tok/s on Qwen1.5-MoE-A2.7B GGUF.",
+        rationale="exp000 is the reference all other experiments are measured against.",
+    ),
 
-    Experiment(4, "float16 weights", "quantization", "best",
-        {"dtype": "float16", "label": "fp16"},
-        "Half precision halves memory traffic; MPS has fast fp16 paths.",
-        "Memory bandwidth is the bottleneck once Python overhead is cut.",
-        prior="Often the single biggest win on Apple GPUs."),
+    # ── Expert Streaming / SSD I-O (exp001–010) ────────────────────────────
+    Experiment(
+        exp=1, title="No mmap — load all weights into RAM",
+        category="ssd_streaming", base="baseline",
+        overrides={"use_mmap": False},
+        hypothesis="Disabling mmap forces eager load of all weights into RAM, "
+                   "eliminating page-fault overhead during expert access at the cost "
+                   "of higher RSS.",
+        rationale="Separates 'trust OS page cache' cost from 'no page faults' benefit.",
+    ),
+    Experiment(
+        exp=2, title="mmap + mlock — pin expert pages in RAM",
+        category="ssd_streaming", base="baseline",
+        overrides={"use_mmap": True, "use_mlock": True},
+        hypothesis="mlock prevents the OS from evicting expert pages, "
+                   "reducing cold-token SSD reads in long sessions.",
+        rationale="mlock is free when RAM is ample; harmful when RAM is scarce.",
+    ),
+    Experiment(
+        exp=3, title="No mmap + mlock (all weights locked in RAM)",
+        category="ssd_streaming", base="baseline",
+        overrides={"use_mmap": False, "use_mlock": True},
+        hypothesis="Full eager load + locked pages eliminates all SSD I/O after load.",
+        rationale="Quantifies maximum possible throughput if 24 GB RAM can hold all weights.",
+    ),
+    Experiment(
+        exp=4, title="Warm cache run (second inference, same process)",
+        category="ssd_streaming", base="baseline",
+        overrides={},   # same config — warm cache via repeated run
+        hypothesis="OS page cache warms expert weights after the first token; "
+                   "second run should show higher hit rate and faster tok/s.",
+        rationale="Measures the page-cache benefit: cold vs warm throughput gap.",
+    ),
+    Experiment(
+        exp=5, title="n_batch=128 — smaller expert read batch",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_batch": 128},
+        hypothesis="Smaller batch reduces peak memory for prompt processing "
+                   "at the cost of more batching overhead.",
+        rationale="Batch size controls prompt tokenization throughput.",
+    ),
+    Experiment(
+        exp=6, title="n_batch=1024 — larger expert read batch",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_batch": 1024},
+        hypothesis="Larger batch amortises overhead for long prompts.",
+        rationale="Batch size controls prompt throughput; bigger helps long inputs.",
+    ),
+    Experiment(
+        exp=7, title="n_batch=2048",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_batch": 2048},
+        hypothesis="Maximum batch: best throughput for long prompts, highest memory.",
+        rationale="Upper bound on batch size benefit.",
+    ),
+    Experiment(
+        exp=8, title="n_ctx=512 — minimal context, small KV cache",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_ctx": 512},
+        hypothesis="Smaller context window reduces KV cache allocation, "
+                   "freeing memory for more OS page cache for expert weights.",
+        rationale="KV cache competes with expert page cache for unified memory.",
+    ),
+    Experiment(
+        exp=9, title="n_ctx=4096 — larger context window",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_ctx": 4096},
+        hypothesis="Larger context increases KV cache pressure and may slow "
+                   "expert streaming by reducing page cache headroom.",
+        rationale="Quantifies KV cache vs expert cache memory trade-off.",
+    ),
+    Experiment(
+        exp=10, title="n_ctx=1024 — moderate context",
+        category="ssd_streaming", base="baseline",
+        overrides={"n_ctx": 1024},
+        hypothesis="1024-token context balances KV memory and generation length.",
+        rationale="Intermediate data point between exp8 (512) and exp9 (4096).",
+    ),
 
-    Experiment(5, "bfloat16 weights", "quantization", "baseline",
-        {"dtype": "bfloat16", "label": "bf16"},
-        "bf16 keeps fp32 dynamic range with fp16 bandwidth.",
-        "Compare against fp16 for a quality/throughput trade.",
-        prior="Throughput similar to fp16; possibly better numerics."),
+    # ── GPU Offloading / Metal (exp011–017) ────────────────────────────────
+    Experiment(
+        exp=11, title="n_gpu_layers=10 — partial Metal offload",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": 10},
+        hypothesis="Offloading bottom 10 layers to Metal GPU reduces CPU compute "
+                   "while SSD expert streaming remains on CPU.",
+        rationale="Low n_gpu_layers has low overhead; tests whether Metal helps at all.",
+    ),
+    Experiment(
+        exp=12, title="n_gpu_layers=20 — half layers on Metal",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": 20},
+        hypothesis="Offloading half the layers to Metal should speed up attention "
+                   "and non-expert compute.",
+        rationale="Mid-point between baseline and full offload.",
+    ),
+    Experiment(
+        exp=13, title="n_gpu_layers=-1 — all layers on Metal GPU",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": -1},
+        hypothesis="Full Metal offload maximises GPU compute throughput; "
+                   "expert weights still stream from SSD via mmap.",
+        rationale="Tests peak Metal throughput for this MoE on 24 GB unified memory.",
+    ),
+    Experiment(
+        exp=14, title="n_gpu_layers=-1 + flash_attn=True",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": -1, "flash_attn": True},
+        hypothesis="Flash attention reduces attention memory bandwidth on GPU, "
+                   "freeing more bandwidth for expert streaming.",
+        rationale="Flash attn is most beneficial when combined with GPU offload.",
+    ),
+    Experiment(
+        exp=15, title="n_gpu_layers=30 + flash_attn=True",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": 30, "flash_attn": True},
+        hypothesis="Partial offload + flash attn may outperform full offload "
+                   "if memory pressure limits full-GPU performance.",
+        rationale="Tests whether partial offload + flash attn beats full offload.",
+    ),
+    Experiment(
+        exp=16, title="n_gpu_layers=-1 + mlock=True",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": -1, "use_mlock": True},
+        hypothesis="Full GPU offload with locked expert pages reduces SSD reads "
+                   "during the decode loop.",
+        rationale="Combines best GPU config with expert cache pinning.",
+    ),
+    Experiment(
+        exp=17, title="n_gpu_layers=-1 + no mmap (all RAM)",
+        category="gpu_offload", base="baseline",
+        overrides={"n_gpu_layers": -1, "use_mmap": False},
+        hypothesis="All weights in RAM + all layers on GPU: maximum throughput "
+                   "if 24 GB can hold the model.",
+        rationale="Upper bound on Metal performance, ignoring SSD streaming.",
+    ),
 
-    Experiment(6, "SDPA attention", "runtime", "best",
-        {"attn_implementation": "sdpa", "label": "sdpa"},
-        "Fused scaled-dot-product-attention beats eager Python attention.",
-        "Attention is a per-layer cost; eager is the naive reference.",
-        prior="Reliable win where supported."),
+    # ── CPU Threading (exp018–022) ──────────────────────────────────────────
+    Experiment(
+        exp=18, title="n_threads=1 — single thread",
+        category="threading", base="baseline",
+        overrides={"n_threads": 1},
+        hypothesis="Single-thread baseline to measure threading overhead.",
+        rationale="Lower bound; confirms multi-threading helps.",
+    ),
+    Experiment(
+        exp=19, title="n_threads=4",
+        category="threading", base="baseline",
+        overrides={"n_threads": 4},
+        hypothesis="4 threads should improve CPU-side dequant and attention.",
+        rationale="Typical mid-range threading.",
+    ),
+    Experiment(
+        exp=20, title="n_threads=8",
+        category="threading", base="baseline",
+        overrides={"n_threads": 8},
+        hypothesis="8 threads fully utilises performance cores on M4.",
+        rationale="M4 base has 4P cores; 8 may still help via HW threads.",
+    ),
+    Experiment(
+        exp=21, title="n_threads=12",
+        category="threading", base="baseline",
+        overrides={"n_threads": 12},
+        hypothesis="12 threads may exceed core count and add scheduling overhead.",
+        rationale="Tests diminishing returns above CPU core count.",
+    ),
+    Experiment(
+        exp=22, title=f"n_threads={_N_CPU} (all logical CPUs)",
+        category="threading", base="baseline",
+        overrides={"n_threads": _N_CPU},
+        hypothesis="Using all logical CPUs saturates the CPU scheduler; "
+                   "may compete with the Metal command queue.",
+        rationale="Upper bound on threading; useful to find the sweet spot.",
+    ),
 
-    Experiment(7, "FlashAttention-2", "runtime", "best",
-        {"attn_implementation": "flash_attention_2", "label": "flash_attn2"},
-        "FA2 reduces memory movement in attention.",
-        "Test whether FA2 kernels are usable on this host.",
-        prior="Expected UNSUPPORTED on MPS -> graceful fallback (a failure to log).",
-        expect_unsupported_on="mps"),
+    # ── Flash Attention (exp023–024) ────────────────────────────────────────
+    Experiment(
+        exp=23, title="flash_attn=True on CPU",
+        category="attention", base="baseline",
+        overrides={"flash_attn": True},
+        hypothesis="Flash attention reduces attention memory traffic even on CPU, "
+                   "potentially speeding up attention layers.",
+        rationale="Tests flash_attn independently of GPU offload.",
+    ),
+    Experiment(
+        exp=24, title="flash_attn=True + best thread count",
+        category="attention", base="best",
+        overrides={"flash_attn": True},
+        hypothesis="Adding flash attn to the current best CPU config further "
+                   "reduces attention overhead.",
+        rationale="Stacking flash_attn on top of best threading config.",
+    ),
 
-    Experiment(8, "SDPA math backend", "runtime", "best",
-        {"sdpa_backend": "math", "label": "sdpa_math"},
-        "Forcing the math kernel can be faster for tiny head dims.",
-        "Probe which SDPA backend the scheduler should pin.",
-        prior="Backend-dependent; measure."),
+    # ── Combo: Best GPU + Best Threading (exp025–029) ──────────────────────
+    Experiment(
+        exp=25, title="Best GPU layers + best n_threads",
+        category="combo", base="best",
+        overrides={},   # runner fills from current best + best_threads result
+        hypothesis="The best GPU offload and best thread count stack additively.",
+        rationale="Tests compounding of the two largest individual wins.",
+    ),
+    Experiment(
+        exp=26, title="Best GPU + flash_attn + best threads",
+        category="combo", base="best",
+        overrides={"flash_attn": True},
+        hypothesis="Adding flash_attn to the best GPU+threads combo.",
+        rationale="Three-way stacking experiment.",
+    ),
+    Experiment(
+        exp=27, title="Best GPU + mlock + flash_attn",
+        category="combo", base="best",
+        overrides={"use_mlock": True, "flash_attn": True},
+        hypothesis="Locking pages + flash attn on top of best GPU config.",
+        rationale="Tests whether page locking adds to GPU+flash_attn combo.",
+    ),
+    Experiment(
+        exp=28, title="Best GPU + n_ctx=512 (small KV cache)",
+        category="combo", base="best",
+        overrides={"n_ctx": 512},
+        hypothesis="Reducing KV cache with best GPU config frees memory for "
+                   "expert page cache, improving hit rate.",
+        rationale="KV cache memory pressure trade-off on the best so-far config.",
+    ),
+    Experiment(
+        exp=29, title="Best GPU + n_batch=1024",
+        category="combo", base="best",
+        overrides={"n_batch": 1024},
+        hypothesis="Larger batch on best GPU config improves prompt processing.",
+        rationale="Batch size effect in context of GPU offload.",
+    ),
 
-    Experiment(9, "SDPA mem-efficient backend", "runtime", "best",
-        {"sdpa_backend": "mem_efficient", "label": "sdpa_memeff"},
-        "Memory-efficient attention lowers peak memory.",
-        "Targets memory bottleneck for longer contexts.",
-        prior="May trade a little speed for memory."),
+    # ── Decoding strategies (exp030–034) ────────────────────────────────────
+    Experiment(
+        exp=30, title="Greedy decode (temp=0, top_k=1) — confirm baseline",
+        category="decoding", base="best",
+        overrides={"temperature": 0.0, "top_k": 1},
+        hypothesis="Greedy decode should match or exceed sampled speed "
+                   "as it skips probability computations.",
+        rationale="Validates that greedy is the right choice for benchmarking.",
+    ),
+    Experiment(
+        exp=31, title="Sampling (temp=0.7, top_k=50, top_p=0.9)",
+        category="decoding", base="best",
+        overrides={"temperature": 0.7, "top_k": 50, "top_p": 0.9},
+        hypothesis="Sampling adds softmax + random sampling overhead; "
+                   "expected to be slightly slower than greedy.",
+        rationale="Quantifies sampling overhead on the best config.",
+    ),
+    Experiment(
+        exp=32, title="top_k=1 (forced greedy via sampling)",
+        category="decoding", base="best",
+        overrides={"temperature": 0.3, "top_k": 1},
+        hypothesis="Low temperature with top_k=1 approximates greedy with "
+                   "negligible sampling cost.",
+        rationale="Alternative greedy-like decoding variant.",
+        expect_quality_risk=True,
+    ),
+    Experiment(
+        exp=33, title="Longer generation (max_new_tokens=256)",
+        category="decoding", base="best",
+        overrides={"max_new_tokens": 256},
+        hypothesis="Longer generation shows steady-state tok/s once KV cache "
+                   "is warm and expert pages are cached.",
+        rationale="Tests whether throughput improves as expert cache warms over a longer run.",
+    ),
+    Experiment(
+        exp=34, title="Short generation (max_new_tokens=64)",
+        category="decoding", base="best",
+        overrides={"max_new_tokens": 64},
+        hypothesis="Very short generations are TTFT-dominated; "
+                   "measures TTFT vs steady-state throughput balance.",
+        rationale="Opposite of exp33: TTFT-bound regime.",
+    ),
 
-    Experiment(10, "use_cache ablation", "memory", "baseline",
-        {"use_cache": False, "label": "no_kv_cache(ablation)"},
-        "Disabling the KV cache forces full recompute each step.",
-        "Ablation: quantify how much the KV cache is worth.",
-        prior="Expected MUCH slower; validates cache value.",),
+    # ── Context length trade-offs (exp035–037) ──────────────────────────────
+    Experiment(
+        exp=35, title="n_ctx=768 — between 512 and 1024",
+        category="context", base="best",
+        overrides={"n_ctx": 768},
+        hypothesis="768-token context may be the sweet spot between "
+                   "KV memory pressure and generation length.",
+        rationale="Fine-grained scan of the context/memory trade-off.",
+    ),
+    Experiment(
+        exp=36, title="n_ctx=2048 + n_batch=256 combo",
+        category="context", base="best",
+        overrides={"n_ctx": 2048, "n_batch": 256},
+        hypothesis="Default context with a moderate batch size.",
+        rationale="Tests batch/context interaction on the best config.",
+    ),
+    Experiment(
+        exp=37, title="n_ctx=512 + n_batch=256",
+        category="context", base="best",
+        overrides={"n_ctx": 512, "n_batch": 256},
+        hypothesis="Minimal KV footprint + moderate batch: best memory efficiency.",
+        rationale="Combination of smallest context + moderate batch.",
+    ),
 
-    Experiment(11, "Static KV cache", "memory", "best",
-        {"cache_implementation": "static", "label": "static_cache"},
-        "Pre-allocated static cache avoids per-step reallocation and is "
-        "required for clean torch.compile graphs.",
-        "Removes allocation churn; enables later compile combo.",
-        prior="Small win alone; unlocks exp29 combo."),
+    # ── Reproducibility / stability (exp038–039) ────────────────────────────
+    Experiment(
+        exp=38, title="Seed stability check (3 identical runs)",
+        category="reproducibility", base="best",
+        overrides={},
+        hypothesis="Three runs with the same seed and config should produce "
+                   "the same tok/s within ±5% (noise floor characterisation).",
+        rationale="Establishes measurement variance for all reported results.",
+    ),
+    Experiment(
+        exp=39, title="Baseline re-run (cold recheck)",
+        category="reproducibility", base="baseline",
+        overrides={},
+        hypothesis="Re-running the baseline after all experiments confirms "
+                   "the hardware state hasn't changed (thermal, etc.).",
+        rationale="Sanity check: baseline should match exp000 within ±5%.",
+    ),
 
-    Experiment(12, "Offloaded KV cache", "memory", "best",
-        {"cache_implementation": "offloaded", "label": "offloaded_cache"},
-        "Offloading cache to CPU frees GPU memory for weights.",
-        "Targets the 24GB memory ceiling for long contexts.",
-        prior="Likely slower for short prompts; helps long-context only.",),
-
-    Experiment(13, "torch.compile (default)", "runtime", "best",
-        {"torch_compile": True, "compile_mode": "default", "label": "compile_default"},
-        "Graph capture fuses ops and cuts dispatch overhead.",
-        "Per-token dispatch overhead is large for small models.",
-        prior="First-call compile cost; warmup hides it."),
-
-    Experiment(14, "torch.compile (reduce-overhead)", "runtime", "best",
-        {"torch_compile": True, "compile_mode": "reduce-overhead", "label": "compile_reduce_ovh"},
-        "CUDA-graph-style overhead reduction for the decode loop.",
-        "Decode loop is launch-bound; reduce-overhead targets exactly that.",
-        prior="Often best compile mode for autoregressive decode."),
-
-    Experiment(15, "torch.compile (max-autotune)", "runtime", "best",
-        {"torch_compile": True, "compile_mode": "max-autotune", "label": "compile_max_autotune"},
-        "Autotuned kernels maximise throughput.",
-        "Spend compile time to win steady-state tok/s.",
-        prior="Long compile; may or may not beat reduce-overhead."),
-
-    Experiment(16, "low_cpu_mem_usage loading", "system", "best",
-        {"low_cpu_mem_usage": True, "label": "low_cpu_mem_load"},
-        "Streamed weight loading lowers peak RAM during init.",
-        "Model-loading bottleneck + 24GB ceiling.",
-        prior="Affects load time/peak RAM, not steady tok/s."),
-
-    Experiment(17, "channels_last memory format", "memory", "best",
-        {"channels_last": True, "label": "channels_last"},
-        "channels_last can improve some kernel memory access.",
-        "Cheap to try; targets memory layout.",
-        prior="Usually neutral for transformers; measure.",),
-
-    Experiment(18, "Pin threads to performance cores", "system", "baseline",
-        {"num_threads": 4, "device": "cpu", "label": "cpu_4threads_pcores"},
-        "On CPU paths, limiting to the 4 P-cores avoids E-core contention.",
-        "System scheduling bottleneck on the M4's hybrid CPU.",
-        prior="Only relevant if a CPU fallback path is used."),
-
-    Experiment(19, "Slow (Python) tokenizer ablation", "runtime", "baseline",
-        {"use_fast_tokenizer": False, "label": "slow_tokenizer(ablation)"},
-        "The Rust fast tokenizer should beat the Python one at encode.",
-        "Tokenizer/startup bottleneck (cf. Flash-MoE's C BPE, 20x startup).",
-        prior="Fast tokenizer expected better; this run should regress.",),
-
-    Experiment(20, "INT8 (bitsandbytes)", "quantization", "best",
-        {"quantization": "int8", "quant_backend": "bitsandbytes", "label": "int8_bnb"},
-        "8-bit weights cut memory traffic ~4x vs fp32.",
-        "Bandwidth bottleneck; biggest theoretical memory win.",
-        prior="bitsandbytes is CUDA-only -> expected UNSUPPORTED on MPS.",
-        expect_unsupported_on="mps"),
-
-    Experiment(21, "NF4 4-bit (bitsandbytes)", "quantization", "best",
-        {"quantization": "nf4", "quant_backend": "bitsandbytes", "label": "nf4_bnb"},
-        "4-bit weights for maximum memory reduction.",
-        "Mirrors Flash-MoE's 4-bit expert packing.",
-        prior="CUDA-only; expected UNSUPPORTED on MPS. Quality risk if forced.",
-        expect_unsupported_on="mps", expect_quality_risk=True),
-
-    Experiment(22, "Prompt batching (bs=4)", "scheduling", "best",
-        {"batch_size": 4, "label": "batch4"},
-        "Batching amortises kernel launches across prompts.",
-        "Throughput scheduling: improves aggregate tok/s under load.",
-        prior="Improves throughput, not single-stream latency."),
-
-    Experiment(23, "Prompt batching (bs=8)", "scheduling", "best",
-        {"batch_size": 8, "label": "batch8"},
-        "Larger batch -> higher utilisation until memory-bound.",
-        "Find the batch size that saturates the 10-core GPU.",
-        prior="Diminishing returns / memory pressure past some point.",),
-
-    Experiment(24, "Speculative decoding (draft model)", "decoding", "best",
-        {"speculative": True, "assistant_model_id": "Qwen/Qwen2.5-0.5B-Instruct",
-         "num_assistant_tokens": 5, "label": "speculative"},
-        "A small draft proposes tokens the target verifies in parallel.",
-        "Decode is latency-bound; speculation can raise effective tok/s.",
-        prior="Gains depend on draft acceptance rate; can break even.",),
-
-    Experiment(25, "Greedy vs sampling cost", "decoding", "best",
-        {"do_sample": False, "label": "greedy_decode"},
-        "Greedy avoids sampling/softmax-top-k overhead.",
-        "Isolate sampler cost from model compute.",
-        prior="Greedy slightly faster; default decode for benchmarking."),
-
-    Experiment(26, "Early EOS stopping", "decoding", "best",
-        {"early_stop_eos": True, "label": "early_eos"},
-        "Stop as soon as EOS is produced instead of padding to max.",
-        "Token-generation bottleneck: don't generate wasted tokens.",
-        prior="Lowers latency on prompts that finish early."),
-
-    Experiment(27, "Persistent engine reuse (no reload)", "system", "best",
-        {"warmup_runs": 2, "label": "warm_persistent"},
-        "Keeping the model resident + extra warmup yields steady-state tok/s.",
-        "Model-loading/warmup overhead removed from the hot path.",
-        prior="Improves measured steady-state; standard serving practice."),
-
-    Experiment(28, "Pinned host memory", "memory", "best",
-        {"pin_memory": True, "label": "pinned_mem"},
-        "Pinned memory speeds host<->device transfers.",
-        "Targets H2D copy cost in the input pipeline.",
-        prior="Mainly a CUDA win; near-neutral on unified-memory MPS.",
-        expect_unsupported_on="mps"),
-
-    Experiment(29, "Static cache + max-autotune compile", "runtime", "best",
-        {"cache_implementation": "static", "torch_compile": True,
-         "compile_mode": "max-autotune", "label": "static+autotune"},
-        "Static cache gives compile a fixed-shape graph -> best fusion.",
-        "Combine two prior wins; classic fast-decode recipe.",
-        prior="Expected strong combo if both individually helped."),
-
-    Experiment(30, "SDPA + fp16 combo", "runtime", "best",
-        {"attn_implementation": "sdpa", "dtype": "float16", "label": "sdpa+fp16"},
-        "Fused attention on half precision compounds two wins.",
-        "Attack compute and bandwidth bottlenecks together.",
-        prior="Likely additive."),
-
-    Experiment(31, "Lazy mmap weight loading (safetensors)", "ssd_streaming", "best",
-        {"low_cpu_mem_usage": True, "label": "mmap_safetensors"},
-        "Memory-map weights so pages load on demand from SSD.",
-        "Dense-model analogue of Flash-MoE SSD streaming; cuts load RAM.",
-        prior="Helps load/peak-RAM; Flash-MoE found mmap bad for COLD per-token "
-              "expert access, but fine for resident dense weights."),
-
-    Experiment(32, "Expert SSD streaming (MoE-only)", "ssd_streaming", "best",
-        {"label": "moe_ssd_stream(NA_dense)"},
-        "Stream only the K active experts per layer from SSD on demand.",
-        "Core MoE-on-laptop technique; the 0.5B model is DENSE so this is N/A "
-        "here and is validated in Phase 2 on Qwen3.5-397B-A17B.",
-        prior="N/A on dense 0.5B; documented and deferred to large-model phase.",),
-
-    Experiment(33, "fp16 KV cache, fp32 compute", "memory", "best",
-        {"kv_cache_dtype": "float16", "cache_implementation": "static", "label": "fp16_kv_cache"},
-        "Store K/V in fp16 to halve cache memory while computing in fp32.",
-        "KV-cache memory bottleneck at long context on 24GB.",
-        prior="Memory win; small/no speed change for short prompts."),
-
-    Experiment(34, "Attention slicing", "memory", "best",
-        {"attention_slicing": True, "label": "attn_slicing"},
-        "Compute attention in chunks to cap peak memory.",
-        "Lets longer contexts fit under the 24GB ceiling.",
-        prior="Trades a little speed for headroom.",),
-
-    Experiment(35, "Length-adaptive max tokens", "decoding", "best",
-        {"max_tokens_scale": 0.75, "label": "adaptive_maxtok"},
-        "Cap generation per category to avoid runaway decode.",
-        "Token-generation bottleneck; stop spending on low-value tokens.",
-        prior="Latency win; must not truncate needed output (quality check).",
-        expect_quality_risk=True),
-
-    Experiment(36, "float32 matmul precision = high (TF32-style)", "runtime", "best",
-        {"matmul_precision": "high", "label": "matmul_high"},
-        "Allow reduced-precision fp32 matmul for throughput.",
-        "Compute bottleneck on the GPU matmuls.",
-        prior="Backend-dependent; measure for MPS."),
-
-    Experiment(37, "Compile + SDPA + bf16 stack", "runtime", "best",
-        {"torch_compile": True, "compile_mode": "reduce-overhead",
-         "attn_implementation": "sdpa", "dtype": "bfloat16", "label": "compile+sdpa+bf16"},
-        "Stack the three most promising runtime/precision wins.",
-        "Compound optimization once individual winners are known.",
-        prior="Either the new best or reveals a bad interaction."),
-
-    Experiment(38, "Cached GenerationConfig reuse", "runtime", "best",
-        {"reuse_generation_config": True, "label": "gen_config_cache"},
-        "Reuse a prebuilt GenerationConfig to skip per-call validation.",
-        "Per-call Python overhead in generate().",
-        prior="Tiny win; cheap to keep if non-negative."),
-
-    Experiment(39, "All cores vs P-cores (threads)", "system", "best",
-        {"num_threads": 10, "label": "cpu_10threads_all"},
-        "Use all 10 CPU cores for CPU-side ops.",
-        "System scheduling: compare with exp18's P-core pinning.",
-        prior="E-cores may add contention; compare to exp18.",),
-
-    Experiment(40, "Batch tokenizer encode", "runtime", "best",
-        {"batch_tokenize": True, "label": "batch_tokenize"},
-        "Encode all prompts in one tokenizer call.",
-        "Tokenizer overhead at the suite level.",
-        prior="Helps suite wall-time, not per-token decode."),
-
-    Experiment(41, "Dynamic batching emulation", "scheduling", "best",
-        {"batch_size": 4, "label": "dynamic_batch"},
-        "Group concurrently-arriving prompts into one forward pass.",
-        "Continuous-batching-style scheduling for serving throughput.",
-        prior="Throughput win under concurrent load."),
-
-    Experiment(42, "Final stacked best-of-all", "runtime", "best",
-        {"label": "final_stacked"},
-        "Apply every validated win together as the optimized engine candidate.",
-        "Produce the final optimized configuration.",
-        prior="Should equal or beat every individual experiment."),
+    # ── Final stacked best config (exp040) ──────────────────────────────────
+    Experiment(
+        exp=40, title="Final optimized stack (all validated wins combined)",
+        category="combo", base="baseline",
+        overrides={},   # runner fills from results/best_config.json
+        hypothesis="The combined set of validated optimizations should deliver "
+                   "the highest sustained tok/s observed in the experiment cycle.",
+        rationale="exp040 is the project's headline result.",
+    ),
 ]
+
+# Fast lookup
+BY_EXP: dict[int, Experiment] = {e.exp: e for e in EXPERIMENTS}
 
 
 def get(exp: int) -> Experiment:
-    for e in REGISTRY:
-        if e.exp == exp:
-            return e
-    raise KeyError(exp)
-
-
-def categories() -> List[str]:
-    return sorted({e.category for e in REGISTRY})
+    if exp not in BY_EXP:
+        raise KeyError(f"No experiment with exp={exp}")
+    return BY_EXP[exp]

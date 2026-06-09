@@ -1,127 +1,130 @@
-"""EngineConfig — the single source of truth for every optimization knob.
+"""config.py — EngineConfig and model-path resolution.
 
-Every experiment is expressed as a *delta* on top of a base config. The
-configurable engine (`ireng/engine.py`) reads this object and nothing else, so
-"running experiment N" means "build EngineConfig from baseline + exp-N delta,
-benchmark it, compare to current best". This is what makes 40 experiments
-reproducible and what makes `optimized_engine.py` simply a frozen config.
+All llama-cpp-python knobs live here.  Each experiment changes one or more
+fields; the engine reloads with the new config so results are reproducible.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict, replace, field
-from typing import Optional, Dict, Any
+import json
+import os
+from dataclasses import dataclass, asdict
 
+# ── Model directories (kept outside the repo) ─────────────────────────────────
+_MODEL_ROOT = os.path.expanduser("~/models")
+
+SMALL_MODEL_ID  = "Qwen1.5-MoE-A2.7B"
+MEDIUM_MODEL_ID = "Qwen3.5-35B-A3B"
+
+SMALL_GGUF_DIR  = os.path.join(_MODEL_ROOT, "Qwen1.5-MoE-A2.7B-GGUF")
+MEDIUM_GGUF_DIR = os.path.join(_MODEL_ROOT, "Qwen3.5-35B-A3B-GGUF")
+
+MODEL_DIRS = {
+    SMALL_MODEL_ID:  SMALL_GGUF_DIR,
+    MEDIUM_MODEL_ID: MEDIUM_GGUF_DIR,
+}
+
+
+def find_gguf_for_model(model_id: str) -> str | None:
+    from ireng.gguf import find_gguf
+    return find_gguf(MODEL_DIRS.get(model_id, ""))
+
+
+# ── Config dataclass ──────────────────────────────────────────────────────────
 
 @dataclass
 class EngineConfig:
-    # ---- model / device -------------------------------------------------
-    model_id: str = "Qwen/Qwen2.5-0.5B-Instruct"
-    device: str = "auto"            # auto | mps | cuda | cpu
-    dtype: str = "float32"          # float32 | float16 | bfloat16
+    """All tuneable parameters for one experiment run."""
 
-    # ---- runtime --------------------------------------------------------
-    inference_mode: bool = False    # torch.inference_mode() context
-    no_grad: bool = False           # torch.no_grad() context (subset of above)
-    eval_mode: bool = True          # model.eval()
-    torch_compile: bool = False
-    compile_mode: str = "default"   # default | reduce-overhead | max-autotune
-    num_threads: Optional[int] = None   # torch.set_num_threads (CPU paths)
-    channels_last: bool = False
-
-    # ---- attention / cache ---------------------------------------------
-    attn_implementation: str = "eager"   # eager | sdpa | flash_attention_2
-    sdpa_backend: str = "auto"           # auto | math | flash | mem_efficient
-    use_cache: bool = True
-    cache_implementation: str = "dynamic"  # dynamic | static | offloaded
-    static_cache_max_len: int = 2048
-
-    # ---- model loading --------------------------------------------------
-    low_cpu_mem_usage: bool = False
-    pin_memory: bool = False
-
-    # ---- quantization ---------------------------------------------------
-    quantization: str = "none"      # none | int8 | nf4 | fp4
-    quant_backend: str = "none"     # none | bitsandbytes | torchao
-
-    # ---- tokenizer ------------------------------------------------------
-    use_fast_tokenizer: bool = True
-
-    # ---- generation -----------------------------------------------------
-    max_new_tokens: int = 128
-    do_sample: bool = False
-    temperature: float = 0.7
-    top_p: float = 0.9
-    top_k: int = 50
-    seed: int = 1234
-    batch_size: int = 1            # >1 enables prompt batching / throughput mode
-
-    # ---- decoding strategies -------------------------------------------
-    speculative: bool = False
-    assistant_model_id: Optional[str] = None   # draft model for spec decoding
-    num_assistant_tokens: int = 5
-    early_stop_eos: bool = True
-
-    # ---- finer-grained knobs (exp33-40) --------------------------------
-    matmul_precision: str = "highest"      # highest | high | medium
-    kv_cache_dtype: Optional[str] = None   # None | float16 | bfloat16
-    attention_slicing: bool = False
-    max_tokens_scale: float = 1.0          # length-adaptive generation cap
-    reuse_generation_config: bool = False
-    batch_tokenize: bool = False
-
-    # ---- benchmark behaviour -------------------------------------------
-    warmup_runs: int = 1
-    measure_runs: int = 3          # measured repetitions per prompt (median)
-
-    # ---- provenance -----------------------------------------------------
     label: str = "baseline"
+
+    # Model
+    model_id: str = SMALL_MODEL_ID
+
+    # Context / batch
+    n_ctx:   int = 2048
+    n_batch: int = 512
+
+    # CPU threading  (-1 = os.cpu_count())
+    n_threads:       int = -1
+    n_threads_batch: int = -1
+
+    # GPU offloading via Metal  (0 = CPU-only, -1 = all layers on GPU)
+    n_gpu_layers: int = 0
+
+    # Memory mapping
+    use_mmap:  bool = True
+    use_mlock: bool = False
+
+    # Flash attention
+    flash_attn: bool = False
+
+    # Generation defaults (overridden per-prompt at call time)
+    max_new_tokens: int   = 128
+    temperature:    float = 0.0
+    top_p:          float = 1.0
+    top_k:          int   = 1
+    seed:           int   = 1234
+
+    # Provenance
     notes: str = ""
 
-    def delta(self, **kwargs) -> "EngineConfig":
-        """Return a copy with the given fields overridden."""
-        return replace(self, **kwargs)
+    def resolved_n_threads(self) -> int:
+        return self.n_threads if self.n_threads > 0 else (os.cpu_count() or 4)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict:
         return asdict(self)
 
-    def signature(self) -> Dict[str, Any]:
-        """The subset that actually affects measured performance (for diffing)."""
-        keys = [
-            "dtype", "device", "inference_mode", "no_grad", "eval_mode",
-            "torch_compile", "compile_mode", "num_threads", "channels_last",
-            "attn_implementation", "sdpa_backend", "use_cache",
-            "cache_implementation", "low_cpu_mem_usage", "pin_memory",
-            "quantization", "quant_backend", "use_fast_tokenizer",
-            "do_sample", "batch_size", "speculative", "assistant_model_id",
-        ]
-        return {k: getattr(self, k) for k in keys}
+    @classmethod
+    def from_dict(cls, d: dict) -> "EngineConfig":
+        valid = set(cls.__dataclass_fields__)
+        return cls(**{k: v for k, v in d.items() if k in valid})
+
+    def llama_kwargs(self) -> dict:
+        """Keyword arguments to pass directly to Llama(...)."""
+        n_t = self.resolved_n_threads()
+        return dict(
+            n_ctx=self.n_ctx,
+            n_batch=self.n_batch,
+            n_threads=n_t,
+            n_threads_batch=(self.n_threads_batch if self.n_threads_batch > 0 else n_t),
+            n_gpu_layers=self.n_gpu_layers,
+            use_mmap=self.use_mmap,
+            use_mlock=self.use_mlock,
+            flash_attn=self.flash_attn,
+            verbose=False,
+        )
 
 
-def baseline_config(model_id: str = "Qwen/Qwen2.5-0.5B-Instruct") -> EngineConfig:
-    """The reproducible *baseline*: plain HF Transformers, float32, eager attention,
-    dynamic cache, no runtime tricks. This is exp000 / the reference point."""
+# ── Preset constructors ───────────────────────────────────────────────────────
+
+def baseline_config() -> EngineConfig:
     return EngineConfig(
-        model_id=model_id,
-        device="auto",
-        dtype="float32",
-        inference_mode=False,
-        no_grad=False,
-        eval_mode=True,
-        torch_compile=False,
-        attn_implementation="eager",
-        use_cache=True,
-        cache_implementation="dynamic",
-        use_fast_tokenizer=True,
         label="baseline",
-        notes="Reference HF Transformers baseline. No optimizations applied.",
+        n_gpu_layers=0,
+        use_mmap=True,
+        use_mlock=False,
+        flash_attn=False,
+        n_ctx=2048,
+        n_batch=512,
+        notes="Naive baseline: mmap on, CPU-only, no flash-attn, trust OS page cache.",
     )
 
 
-def diff_configs(a: EngineConfig, b: EngineConfig) -> Dict[str, Any]:
-    """Field-level diff used by the dashboard's Optimization Diff Viewer."""
-    da, db = a.as_dict(), b.as_dict()
-    out: Dict[str, Any] = {}
-    for k in da:
-        if da[k] != db.get(k):
-            out[k] = {"baseline": da[k], "optimized": db.get(k)}
-    return out
+def load_optimized_config() -> EngineConfig:
+    """Load winning config from results/best_config.json, or return baseline."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, "..", "results", "best_config.json")
+    if os.path.exists(path):
+        with open(path) as f:
+            d = json.load(f)
+        try:
+            return EngineConfig.from_dict(d.get("config", d))
+        except Exception:
+            pass
+    return baseline_config()
+
+
+def diff_configs(base: EngineConfig, opt: EngineConfig) -> dict:
+    bd, od = base.to_dict(), opt.to_dict()
+    return {k: {"baseline": bd[k], "optimized": od[k]}
+            for k in bd if bd[k] != od[k]}

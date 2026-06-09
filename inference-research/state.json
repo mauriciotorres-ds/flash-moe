@@ -1,10 +1,12 @@
 {
-  "phase": 1,
-  "current_experiment": 43,
-  "last_completed_experiment": 42,
-  "baseline_tps": 36.527,
-  "best_tps": 56.612,
-  "best_config": "exp041",
+  "current_experiment": 0,
+  "last_completed_experiment": -1,
+  "baseline_tps": null,
+  "best_tps": null,
+  "best_config_dict": null,
   "status": "idle",
-  "last_updated": "2026-06-04T14:05:02-04:00"
+  "model": "Qwen1.5-MoE-A2.7B",
+  "model_tier": "small",
+  "gguf_path": "~/models/Qwen1.5-MoE-A2.7B-GGUF/Qwen1.5-MoE-A2.7B-Chat.Q4_K_M.gguf",
+  "last_updated": "2026-06-09T00:00:00"
 }

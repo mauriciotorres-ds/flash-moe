@@ -75,6 +75,9 @@ EXP_FIELDS = [
     "exp", "title", "category", "label", "decision",
     "mean_tps", "baseline_tps", "best_tps", "delta_pct_vs_best",
     "mean_ttft_s", "mean_latency_s", "peak_memory_mb", "kv_cache_mb",
+    # Expert streaming fields (spec requirement)
+    "expert_bytes_per_tok_mb", "page_cache_hit_rate",
+    "n_experts", "n_experts_used", "n_moe_layers",
     "quality_ok", "measured", "data_source", "device", "timestamp", "notes",
 ]
 
@@ -109,9 +112,10 @@ def read_experiments() -> List[Dict[str, Any]]:
 def append_benchmark_history(rows: List[Dict[str, Any]]):
     fields = [
         "exp", "label", "prompt_id", "category", "tokens_generated",
-        "tokens_per_second", "decode_tokens_per_second", "time_to_first_token_s",
-        "total_latency_s", "peak_memory_mb", "current_memory_mb",
-        "cpu_utilization_pct", "gpu_utilization_pct", "kv_cache_mb",
+        "tokens_per_second", "time_to_first_token_s",
+        "total_runtime_s", "peak_memory_mb", "current_memory_mb",
+        "cpu_utilization_pct", "gpu_utilization_pct",
+        "expert_bytes_per_tok_mb", "page_cache_hit_rate",
         "context_length", "device", "measured", "data_source", "timestamp",
     ]
     need_header = _empty(BENCH_HISTORY_CSV)

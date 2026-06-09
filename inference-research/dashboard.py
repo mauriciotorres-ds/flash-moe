@@ -30,7 +30,8 @@ import pandas as pd
 
 from ireng import storage as st
 from ireng.hardware import detect_host, TARGET_SPEC
-from ireng.config import baseline_config, diff_configs
+from ireng.config import (baseline_config, load_optimized_config,
+                           diff_configs, SMALL_MODEL_ID, MEDIUM_MODEL_ID)
 from ireng.prompts import SUITE, CATEGORIES
 
 st_ui.set_page_config(
@@ -39,7 +40,7 @@ st_ui.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-MODELS = ["Qwen/Qwen2.5-0.5B-Instruct", "Qwen3.5-397B-A17B"]
+MODELS  = ["Qwen1.5-MoE-A2.7B", "Qwen3.5-35B-A3B"]
 ENGINES = ["Baseline Engine", "Optimized Engine", "Compare Both"]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -529,20 +530,24 @@ def _host_header():
     host = detect_host()
     c1, c2, c3, c4 = st_ui.columns(4)
     c1.metric("Target", TARGET_SPEC["label"])
-    c2.metric("Host device", host.device)
-    c3.metric("torch", host.torch_version or "not installed")
+    c2.metric("Backend", "llama-cpp-python + Metal")
+    c3.metric("llama-cpp", host.llama_version or "not installed")
     c4.metric("Experiments on disk", len(st.read_experiments()))
 
 
 @st_ui.cache_resource(show_spinner=False)
-def _get_engine(kind: str, model_id: str, device: str):
+def _get_engine(kind: str, model_id: str):
     try:
         if kind == "Baseline Engine":
             from baseline_engine import BaselineEngine
-            return BaselineEngine(model_id, device), None
+            eng = BaselineEngine(model_id)
+            eng.load()
+            return eng, None
         else:
             from optimized_engine import OptimizedEngine
-            return OptimizedEngine(model_id, device), None
+            eng = OptimizedEngine(model_id)
+            eng.load()
+            return eng, None
     except Exception as e:
         return None, str(e)
 
@@ -555,48 +560,56 @@ def tab_playground():
     st_ui.subheader("Live Inference Playground")
     col_a, col_b = st_ui.columns([2, 1])
     with col_b:
-        model_id  = st_ui.selectbox("Model", MODELS)
+        model_id    = st_ui.selectbox("Model", MODELS,
+                                      help="Small=2.7B active / Medium=3B active (GGUF Q4_K_M)")
         engine_kind = st_ui.selectbox("Engine", ENGINES[:2])
-        device    = st_ui.selectbox("Device", ["auto", "mps", "cuda", "cpu"])
-        max_new   = st_ui.slider("Max new tokens", 8, 512, 128, 8)
-        temperature = st_ui.slider("Temperature", 0.0, 2.0, 0.7, 0.05)
-        top_p     = st_ui.slider("Top-p", 0.0, 1.0, 0.9, 0.05)
-        top_k     = st_ui.slider("Top-k", 0, 200, 50, 1)
-        seed      = st_ui.number_input("Seed", value=1234, step=1)
-        do_log    = st_ui.checkbox("Log this run to dashboard_logs/", value=True)
+        max_new     = st_ui.slider("Max new tokens", 8, 512, 128, 8)
+        temperature = st_ui.slider("Temperature", 0.0, 2.0, 0.0, 0.05)
+        top_p       = st_ui.slider("Top-p", 0.0, 1.0, 1.0, 0.05)
+        top_k       = st_ui.slider("Top-k", 1, 200, 1, 1)
+        seed        = st_ui.number_input("Seed", value=1234, step=1)
+        do_log      = st_ui.checkbox("Log this run to dashboard_logs/", value=True)
     with col_a:
         system = st_ui.text_area("System prompt", "You are a concise, helpful assistant.", height=70)
-        prompt = st_ui.text_area("Prompt", "Explain Mixture-of-Experts in two sentences.", height=120)
-        run    = st_ui.button("▶  Run Inference", type="primary")
+        prompt = st_ui.text_area("Prompt",
+            "Explain why only a small subset of experts activate per token in a "
+            "Mixture-of-Experts model, and how that makes large-model laptop "
+            "inference possible.", height=120)
+        run = st_ui.button("▶  Run Inference", type="primary")
 
-    if model_id == "Qwen3.5-397B-A17B":
-        st_ui.info(
-            "The 397B MoE runs through the Flash-MoE Metal engine, not the Python HF path.  "
-            "Use `../metal_infer/infer` or `large_model/validate_transfer.py` for live 397B generation."
-        )
-        return
+    if model_id == MEDIUM_MODEL_ID:
+        gguf_ok = os.path.isdir(os.path.expanduser("~/models/Qwen3.5-35B-A3B-GGUF"))
+        if not gguf_ok:
+            st_ui.warning(
+                "Medium model (Qwen3.5-35B-A3B) not downloaded yet.  "
+                "Run the experiment cycle on Small first, then:\n\n"
+                "```\nhf download unsloth/Qwen3.5-35B-A3B-GGUF "
+                "--include '*Q4_K_M*.gguf' "
+                "--local-dir ~/models/Qwen3.5-35B-A3B-GGUF\n```"
+            )
+            return
+
     if not run:
         return
 
-    engine, err = _get_engine(engine_kind, model_id, device)
+    engine, err = _get_engine(engine_kind, model_id)
     if err or engine is None:
         st_ui.error(
-            f"Engine unavailable: {err}\n\n"
-            "Install deps and download the model (`pip install -r requirements.txt`), then retry."
+            f"Engine load failed: {err}\n\n"
+            "Make sure the GGUF is downloaded and llama-cpp-python is installed."
         )
         return
 
     from ireng.prompts import Prompt
     engine.config.max_new_tokens = max_new
-    engine.config.do_sample      = temperature > 0
     engine.config.temperature    = temperature
     engine.config.top_p          = top_p
     engine.config.top_k          = top_k
     engine.config.seed           = int(seed)
     p = Prompt("playground", "factual", system, prompt, max_new)
 
-    out_box = st_ui.empty()
-    m1, m2, m3, m4, m5 = st_ui.columns(5)
+    out_box  = st_ui.empty()
+    c1,c2,c3,c4,c5 = st_ui.columns(5)
     text = ""
     last = None
     with st_ui.spinner("Generating…"):
@@ -605,22 +618,40 @@ def tab_playground():
                 text += chunk
                 out_box.markdown(f"```\n{text}\n```")
             last = m
-            m1.metric("tokens",    m.tokens_generated)
-            m2.metric("tok/s",     m.tokens_per_second)
-            m3.metric("TTFT (s)",  m.time_to_first_token_s or "—")
-            m4.metric("elapsed (s)", m.total_latency_s)
-            m5.metric("context",   m.context_length)
+            c1.metric("tokens",      m.tokens_generated)
+            c2.metric("tok/s",       m.tokens_per_second)
+            c3.metric("TTFT (s)",    m.time_to_first_token_s or "—")
+            c4.metric("elapsed (s)", m.total_runtime_s)
+            c5.metric("context",     m.context_length)
+
     if last:
         st_ui.divider()
         d = last.as_dict()
-        g = d["gpu_utilization_pct"]
         cols = st_ui.columns(6)
-        cols[0].metric("total elapsed (s)", d["total_latency_s"])
-        cols[1].metric("peak mem (MB)",    d["peak_memory_mb"])
-        cols[2].metric("cur mem (MB)",     d["current_memory_mb"])
-        cols[3].metric("CPU %",            d["cpu_utilization_pct"])
-        cols[4].metric("GPU %",            g if g is not None else "n/a (MPS)")
-        cols[5].metric("KV cache (MB)",    d["kv_cache_mb"])
+        cols[0].metric("total runtime (s)", d["total_runtime_s"])
+        cols[1].metric("peak mem (MB)",     d["peak_memory_mb"])
+        cols[2].metric("cur mem (MB)",      d["current_memory_mb"])
+        cols[3].metric("CPU %",             d["cpu_utilization_pct"])
+        cols[4].metric("expert MB/tok",     d.get("expert_bytes_per_tok"))
+        cols[5].metric("GPU",               "Metal" if engine.config.n_gpu_layers != 0 else "CPU")
+
+        # Expert architecture info
+        es = last.expert_stats
+        if es:
+            st_ui.divider()
+            st_ui.markdown("**Expert Architecture (from GGUF metadata)**")
+            ea1, ea2, ea3, ea4 = st_ui.columns(4)
+            ea1.metric("Total experts / layer", es.n_experts)
+            ea2.metric("Active per token (K)",  es.n_experts_used)
+            ea3.metric("MoE layers",            es.n_moe_layers)
+            ea4.metric("Utilisation",
+                       f"{round(es.utilization_rate()*100,1)}%"
+                       if es.activation_counts else "see note")
+            st_ui.caption(
+                "Per-step expert indices require llama.cpp C callbacks not yet "
+                "exposed in Python. Architecture info is read directly from the GGUF file."
+            )
+
         if do_log:
             _log_run(model_id, engine_kind, system, prompt, d)
             st_ui.caption("Logged to dashboard_logs/")
@@ -730,7 +761,6 @@ def tab_timeline():
 
 def tab_diff():
     st_ui.subheader("Optimization Diff Viewer")
-    from optimized_engine import load_optimized_config
     base = baseline_config()
     opt  = load_optimized_config()
     d    = diff_configs(base, opt)
@@ -755,24 +785,89 @@ def tab_diff():
 
 
 def tab_moe():
-    st_ui.subheader("MoE Visualization — Qwen3.5-397B-A17B")
-    transfer = st.read_json(os.path.join(st.RESULTS, "large_model_transfer.json"), None)
+    st_ui.subheader("MoE Expert Streaming Visualization")
+
+    # ── Model architecture cards ──────────────────────────────────────────
+    st_ui.markdown("**Supported model tiers (GGUF Q4_K_M)**")
+    mc1, mc2 = st_ui.columns(2)
+    with mc1:
+        small_ok = os.path.isdir(os.path.expanduser("~/models/Qwen1.5-MoE-A2.7B-GGUF"))
+        status = "Downloaded" if small_ok else "Not downloaded"
+        st_ui.metric("Small — Qwen1.5-MoE-A2.7B", "~8.8 GB", status)
+        st_ui.caption("60 experts/layer · top-4 active · 24 layers · 14.3B total / 2.7B active")
+    with mc2:
+        medium_ok = os.path.isdir(os.path.expanduser("~/models/Qwen3.5-35B-A3B-GGUF"))
+        files = os.listdir(os.path.expanduser("~/models/Qwen3.5-35B-A3B-GGUF")) if medium_ok else []
+        mstatus = "Downloaded" if (medium_ok and any(f.endswith(".gguf") for f in files)) else "Not downloaded"
+        st_ui.metric("Medium — Qwen3.5-35B-A3B", "~22 GB", mstatus)
+        st_ui.caption("64+ experts/layer · ~3B active · 35B total / 3B active")
+
+    st_ui.divider()
+
+    # ── Expert streaming explained ────────────────────────────────────────
+    st_ui.markdown("**Why MoE sparsity enables laptop inference**")
     st_ui.markdown(
-        "The 397B model has **512 experts / layer, K=4 active per token**.  "
-        "Live per-expert routing counters require instrumenting the Metal engine "
-        "(`metal_infer/infer.m`) to emit activation counts."
+        "Each decoding step activates only **K=4 experts** out of 60 per layer.  "
+        "This means ~93% of expert weights stay on SSD and are never read.  "
+        "Only the selected experts are streamed via `mmap` on demand — the OS page "
+        "cache keeps hot experts warm across tokens.  "
+        "This is the core technique the project optimizes."
     )
-    if transfer:
-        st_ui.json({k: transfer[k] for k in transfer if k != "transfer_map"})
-        if transfer.get("transfer_map"):
-            st_ui.markdown("**Optimization transfer map — small model → MoE engine:**")
-            st_ui.table(pd.DataFrame(transfer["transfer_map"]))
+
+    # ── Expert streaming stats from benchmark history ─────────────────────
+    st_ui.divider()
+    st_ui.markdown("**Expert streaming stats (from benchmark runs)**")
+    rows = st.read_experiments()
+    if rows:
+        df = pd.DataFrame(rows)
+        for col in ["expert_bytes_per_tok_mb", "n_experts", "n_experts_used", "n_moe_layers"]:
+            if col in df:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        col_a, col_b = st_ui.columns(2)
+        with col_a:
+            if "expert_bytes_per_tok_mb" in df and df["expert_bytes_per_tok_mb"].notna().any():
+                st_ui.markdown("**Expert bytes streamed per token (MB)**")
+                valid = df[df["expert_bytes_per_tok_mb"].notna()][["exp", "expert_bytes_per_tok_mb"]]
+                st_ui.line_chart(valid.set_index("exp")["expert_bytes_per_tok_mb"])
+            else:
+                st_ui.info("expert_bytes_per_tok data not yet available — run experiments first.")
+        with col_b:
+            if "n_experts" in df and df["n_experts"].notna().any():
+                row0 = df[df["n_experts"].notna()].iloc[0]
+                st_ui.metric("Total experts / layer", int(row0["n_experts"]))
+                st_ui.metric("Active per token (K)",  int(row0["n_experts_used"]))
+                st_ui.metric("MoE layers",            int(row0["n_moe_layers"]))
+                sparsity = 1.0 - float(row0["n_experts_used"]) / float(row0["n_experts"])
+                st_ui.metric("Sparsity", f"{round(sparsity*100,1)}%")
+            else:
+                st_ui.info("Run at least exp000 to populate expert architecture stats.")
+
+        # Expert streaming category experiments
+        stream_exps = df[df["category"] == "ssd_streaming"] if "category" in df.columns else pd.DataFrame()
+        if not stream_exps.empty:
+            st_ui.divider()
+            st_ui.markdown("**Expert streaming experiment results**")
+            st_ui.dataframe(
+                stream_exps[["exp", "title", "mean_tps", "peak_memory_mb",
+                              "decision"]].reset_index(drop=True),
+                use_container_width=True,
+            )
     else:
-        st_ui.warning(
-            "No expert-routing data captured yet.  "
-            "Build `metal_infer` and run `python large_model/validate_transfer.py`.  "
-            "Expert heatmaps will populate once the engine emits per-expert activation counts."
+        st_ui.info(
+            "No benchmark data yet.  Run:\n\n"
+            "```\npython run_experiments.py --mode real\n```"
         )
+
+    # ── Per-step expert selection note ────────────────────────────────────
+    st_ui.divider()
+    st_ui.caption(
+        "Per-token, per-layer expert routing indices require llama.cpp C-level "
+        "callbacks not yet exposed in llama-cpp-python 0.3.x. "
+        "Architecture info is read from GGUF metadata; bytes-per-token is "
+        "estimated from model size and top-K. "
+        "This limitation is documented, not hidden."
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

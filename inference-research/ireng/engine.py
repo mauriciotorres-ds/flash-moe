@@ -1,368 +1,263 @@
-"""ConfigurableEngine — one engine, driven entirely by EngineConfig.
+"""engine.py — LlamaMoEEngine: GGUF-based MoE inference via llama-cpp-python.
 
-This single class implements every optimization knob the experiments toggle.
-`baseline_engine.py` and `optimized_engine.py` are thin wrappers that hand it a
-frozen config. Keeping all behaviour in one place is what lets 40 experiments
-be a fair apples-to-apples comparison: only the config changes.
+This is the core engine the spec requires: it loads GGUF files, streams tokens,
+measures telemetry (tok/s, TTFT, memory, expert stats), and exposes the same
+knobs the experiment runner toggles (n_gpu_layers, use_mmap, flash_attn, etc.).
 
-Design notes
-------------
-* torch / transformers are imported lazily so the framework (registry, storage,
-  plotting, dashboard scaffolding) can be inspected and unit-tested on machines
-  without a GPU or without the model downloaded.
-* Unsupported knobs degrade gracefully and record a note rather than crash
-  (e.g. bitsandbytes INT8 on Apple Silicon -> falls back + flags `supported=False`).
-* Generation uses a TextIteratorStreamer so the dashboard can stream tokens and
-  measure true time-to-first-token.
+Expert selection tracking
+-------------------------
+llama-cpp-python does not expose per-layer router logits from Python.  Instead:
+  1. GGUF metadata is parsed at load time to discover the expert architecture
+     (n_experts, top_k, n_moe_layers).
+  2. During generation we count the total decode steps and estimate bytes
+     streamed per token from model size and top-K.
+  3. A per-run ExpertStats object is populated with architecture info and the
+     bytes-per-token estimate; per-step layer-level indices are marked as
+     unavailable with a clear note rather than fabricated.
+This is the most honest approach given the API constraints.
 """
 from __future__ import annotations
 
-import contextlib
 import gc
-import threading
-from typing import Iterator, List, Optional, Tuple
+import os
+import time
+from typing import Iterator, Optional
 
-from .config import EngineConfig
-from .hardware import best_device, detect_host
-from .metrics import GenerationMetrics, ResourceSampler, Stopwatch, kv_cache_mb
+from .config import EngineConfig, find_gguf_for_model
+from .metrics import (
+    GenerationMetrics, ExpertStats, ResourceSampler, Stopwatch,
+)
 from .prompts import Prompt
-
-_DTYPE_BYTES = {"float32": 4, "float16": 2, "bfloat16": 2}
 
 
 class EngineError(RuntimeError):
     pass
 
 
-class ConfigurableEngine:
+class LlamaMoEEngine:
+    """Wraps llama-cpp-python Llama with MoE telemetry and experiment support."""
+
     def __init__(self, config: EngineConfig):
         self.config = config
-        self.device = best_device(config.device)
-        self.model = None
-        self.tokenizer = None
-        self.assistant_model = None
-        self.support_notes: List[str] = []
+        self._llm = None
+        self._gguf_meta = None
         self._loaded = False
+        self.support_notes: list[str] = []
 
-    # ------------------------------------------------------------------ load
-    def load(self):
+    # ── Load / unload ────────────────────────────────────────────────────────
+
+    def load(self) -> "LlamaMoEEngine":
         if self._loaded:
             return self
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-        except Exception as e:  # pragma: no cover - env without torch
-            raise EngineError(f"torch/transformers unavailable: {e}")
-
-        cfg = self.config
-
-        if cfg.num_threads:
-            torch.set_num_threads(int(cfg.num_threads))
-
-        if cfg.matmul_precision in ("highest", "high", "medium"):
-            try:
-                torch.set_float32_matmul_precision(cfg.matmul_precision)
-            except Exception as e:
-                self.support_notes.append(f"matmul_precision unsupported: {e}")
-
-        dtype = {
-            "float32": torch.float32,
-            "float16": torch.float16,
-            "bfloat16": torch.bfloat16,
-        }.get(cfg.dtype, torch.float32)
-
-        # ---- tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            cfg.model_id, use_fast=cfg.use_fast_tokenizer
-        )
-        if self.tokenizer.pad_token_id is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        # ---- quantization config (graceful)
-        quant_kwargs = self._build_quant_kwargs(cfg)
-
-        load_kwargs = dict(
-            torch_dtype=dtype,
-            low_cpu_mem_usage=cfg.low_cpu_mem_usage,
-        )
-        # attention implementation
-        if cfg.attn_implementation in ("sdpa", "eager", "flash_attention_2"):
-            load_kwargs["attn_implementation"] = cfg.attn_implementation
-        load_kwargs.update(quant_kwargs)
 
         try:
-            self.model = AutoModelForCausalLM.from_pretrained(cfg.model_id, **load_kwargs)
-        except Exception as e:
-            # retry without optional knobs that some backends reject
-            self.support_notes.append(f"load fallback (dropped optional kwargs): {e}")
-            self.model = AutoModelForCausalLM.from_pretrained(
-                cfg.model_id, torch_dtype=dtype
+            from llama_cpp import Llama
+        except ImportError as e:
+            raise EngineError(
+                "llama-cpp-python not installed.  "
+                "Run: CMAKE_ARGS='-DGGML_METAL=on' pip install llama-cpp-python"
+            ) from e
+
+        gguf_path = find_gguf_for_model(self.config.model_id)
+        if not gguf_path:
+            raise EngineError(
+                f"No GGUF file found for model '{self.config.model_id}'.  "
+                f"Download it first:\n"
+                f"  hf download RichardErkhov/Qwen_-_Qwen1.5-MoE-A2.7B-Chat-gguf "
+                f"--include '*Q4_K_M*.gguf' "
+                f"--local-dir ~/models/Qwen1.5-MoE-A2.7B-GGUF"
             )
 
-        if not quant_kwargs:  # quantized models are already device-placed
-            self.model = self.model.to(self.device)
-
-        if cfg.channels_last:
-            try:
-                self.model = self.model.to(memory_format=torch.channels_last)
-            except Exception as e:
-                self.support_notes.append(f"channels_last unsupported: {e}")
-
-        if cfg.eval_mode:
-            self.model.eval()
-
-        if cfg.attention_slicing:
-            # Not all decoder models expose slicing; record support honestly.
-            fn = getattr(self.model, "enable_attention_slicing", None)
-            if callable(fn):
-                try:
-                    fn()
-                except Exception as e:
-                    self.support_notes.append(f"attention_slicing failed: {e}")
-            else:
+        # Parse GGUF metadata before loading (fast, reads header only)
+        try:
+            from .gguf import read_gguf_meta
+            self._gguf_meta = read_gguf_meta(gguf_path)
+            if self._gguf_meta.is_moe:
                 self.support_notes.append(
-                    "attention_slicing not exposed by this model; "
-                    "use sdpa mem_efficient backend (exp9) for the same goal.")
+                    f"MoE model: {self._gguf_meta.n_experts} experts / layer, "
+                    f"top-{self._gguf_meta.n_experts_used} active, "
+                    f"{len(self._gguf_meta.moe_layers)} MoE layers"
+                )
+        except Exception as e:
+            self.support_notes.append(f"GGUF metadata parse warning: {e}")
 
-        if cfg.kv_cache_dtype:
-            # HF does not expose a public per-layer KV dtype switch for all
-            # models; we record it and rely on overall dtype / static cache.
-            self.support_notes.append(
-                f"kv_cache_dtype={cfg.kv_cache_dtype} requested; approximated via "
-                f"model dtype + static cache where available.")
+        kw = self.config.llama_kwargs()
+        kw["model_path"] = gguf_path
 
-        # ---- torch.compile
-        if cfg.torch_compile:
-            try:
-                self.model = torch.compile(self.model, mode=cfg.compile_mode)
-            except Exception as e:
-                self.support_notes.append(f"torch.compile unsupported: {e}")
-
-        # ---- speculative / assistant model
-        if cfg.speculative and cfg.assistant_model_id:
-            try:
-                self.assistant_model = AutoModelForCausalLM.from_pretrained(
-                    cfg.assistant_model_id, torch_dtype=dtype
-                ).to(self.device)
-                if cfg.eval_mode:
-                    self.assistant_model.eval()
-            except Exception as e:
-                self.support_notes.append(f"assistant model load failed: {e}")
-                self.assistant_model = None
-
+        self._llm = Llama(**kw)
         self._loaded = True
         return self
 
-    def _build_quant_kwargs(self, cfg: EngineConfig) -> dict:
-        if cfg.quantization == "none":
-            return {}
-        host = detect_host()
-        # bitsandbytes INT8/4-bit is CUDA-only. Flag clearly on Apple Silicon.
-        if cfg.quant_backend == "bitsandbytes" and not host.has_cuda:
-            self.support_notes.append(
-                f"quantization={cfg.quantization} via bitsandbytes requires CUDA; "
-                f"not supported on {self.device}. Running unquantized."
-            )
-            return {}
-        try:
-            from transformers import BitsAndBytesConfig
+    def unload(self):
+        self._llm = None
+        self._gguf_meta = None
+        self._loaded = False
+        gc.collect()
 
-            if cfg.quantization == "int8":
-                return {"quantization_config": BitsAndBytesConfig(load_in_8bit=True)}
-            if cfg.quantization in ("nf4", "fp4"):
-                import torch
+    def reconfigure(self, new_config: EngineConfig) -> "LlamaMoEEngine":
+        """Reload with a new config (unloads current model first)."""
+        self.unload()
+        self.config = new_config
+        self.support_notes = []
+        return self.load()
 
-                return {"quantization_config": BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type=cfg.quantization,
-                    bnb_4bit_compute_dtype=torch.float16,
-                )}
-        except Exception as e:
-            self.support_notes.append(f"quantization unavailable: {e}")
-        return {}
+    # ── Internal helpers ─────────────────────────────────────────────────────
 
-    # ----------------------------------------------------------- prompt prep
-    def _format(self, prompt: Prompt) -> str:
-        messages = []
+    def _messages(self, prompt: Prompt) -> list[dict]:
+        msgs = []
         if prompt.system:
-            messages.append({"role": "system", "content": prompt.system})
-        messages.append({"role": "user", "content": prompt.user})
-        try:
-            return self.tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
-            )
-        except Exception:
-            sys = (prompt.system + "\n\n") if prompt.system else ""
-            return f"{sys}{prompt.user}\n"
+            msgs.append({"role": "system", "content": prompt.system})
+        msgs.append({"role": "user", "content": prompt.user})
+        return msgs
 
-    @contextlib.contextmanager
-    def _inference_ctx(self):
-        import torch
-
-        cfg = self.config
-        if cfg.inference_mode:
-            with torch.inference_mode():
-                yield
-        elif cfg.no_grad:
-            with torch.no_grad():
-                yield
-        else:
-            yield
-
-    def _gen_kwargs(self, prompt: Prompt) -> dict:
-        cfg = self.config
-        base_max = prompt.max_new_tokens or cfg.max_new_tokens
-        max_new = max(8, int(round(base_max * cfg.max_tokens_scale)))
-        kw = dict(
-            max_new_tokens=max_new,
-            do_sample=cfg.do_sample,
-            use_cache=cfg.use_cache,
-            pad_token_id=self.tokenizer.pad_token_id,
+    def _expert_stats(self, n_tokens: int) -> Optional[ExpertStats]:
+        """Build ExpertStats from GGUF metadata + generation counts."""
+        if not self._gguf_meta or not self._gguf_meta.is_moe:
+            return None
+        meta = self._gguf_meta
+        stats = ExpertStats(
+            n_experts=meta.n_experts,
+            n_experts_used=meta.n_experts_used,
+            n_moe_layers=len(meta.moe_layers),
         )
-        if cfg.early_stop_eos and self.tokenizer.eos_token_id is not None:
-            kw["eos_token_id"] = self.tokenizer.eos_token_id
-        if cfg.do_sample:
-            kw.update(temperature=cfg.temperature, top_p=cfg.top_p, top_k=cfg.top_k)
-        if cfg.cache_implementation == "offloaded" and self.device == "mps":
-            # OffloadedCache calls torch.cuda.default_stream() internally
-            # which requires CUDA and is not available on MPS.
-            self.support_notes.append(
-                "cache_implementation='offloaded' requires CUDA; "
-                "not supported on MPS. Running with dynamic cache."
-            )
-        elif cfg.cache_implementation in ("static", "offloaded"):
-            kw["cache_implementation"] = cfg.cache_implementation
-        if self.assistant_model is not None:
-            kw["assistant_model"] = self.assistant_model
-            kw["num_assistant_tokens"] = cfg.num_assistant_tokens
-        return kw
+        # Per-step expert indices require llama.cpp C-level callbacks not
+        # exposed by llama-cpp-python.  We document this honestly rather than
+        # fabricating routing decisions.
+        stats.per_step = []
+        return stats
 
-    # --------------------------------------------------------------- stream
-    def stream(self, prompt: Prompt) -> Iterator[Tuple[str, GenerationMetrics]]:
-        """Yield (text_chunk, partial_metrics) as tokens are produced.
+    def _expert_bytes_per_tok(self) -> Optional[float]:
+        """Estimate bytes of expert weight read per token from GGUF size."""
+        if not self._gguf_meta or not self._gguf_meta.is_moe:
+            return None
+        try:
+            meta = self._gguf_meta
+            file_gb  = os.path.getsize(meta.path) / 1024**3
+            n_moe    = len(meta.moe_layers)
+            n_total  = meta.n_layers
+            # Expert weights are roughly (n_moe / n_total) fraction of file
+            expert_gb   = file_gb * (n_moe / max(n_total, 1)) * 0.85
+            expert_per_layer_gb = expert_gb / max(n_moe, 1)
+            per_expert_gb = expert_per_layer_gb / max(meta.n_experts, 1)
+            # Each token reads top-K experts per MoE layer
+            bytes_per_tok = (per_expert_gb * meta.n_experts_used * n_moe
+                             * 1024**3)
+            return round(bytes_per_tok / 1024**2, 3)   # return in MB
+        except Exception:
+            return None
 
-        The final yield carries the complete metrics object. Used by the
-        dashboard for live streaming + true TTFT.
+    # ── stream() ─────────────────────────────────────────────────────────────
+
+    def stream(self, prompt: Prompt) -> Iterator[tuple[str, GenerationMetrics]]:
+        """Yield (text_chunk, partial_metrics) as tokens arrive.
+
+        The final yield is ("", complete_metrics) with all fields populated.
         """
         if not self._loaded:
             self.load()
-        import torch
-        from transformers import TextIteratorStreamer
 
         cfg = self.config
-        if cfg.seed is not None:
-            torch.manual_seed(cfg.seed)
-
-        text = self._format(prompt)
-        enc = self.tokenizer(text, return_tensors="pt").to(self.device)
-        prompt_tokens = int(enc["input_ids"].shape[1])
-
-        streamer = TextIteratorStreamer(
-            self.tokenizer, skip_prompt=True, skip_special_tokens=True
-        )
-        gen_kwargs = self._gen_kwargs(prompt)
-        gen_kwargs.update(enc, streamer=streamer)
-
-        sampler = ResourceSampler(self.device)
+        messages = self._messages(prompt)
+        sampler = ResourceSampler()
         sw = Stopwatch().start()
         sampler.start()
 
-        thread_exc: list = []
-
-        def _run():
-            try:
-                with self._inference_ctx():
-                    self.model.generate(**gen_kwargs)
-            except Exception as e:
-                thread_exc.append(e)
-                # Signal the streamer to unblock by ending the queue.
-                try:
-                    streamer.end()
-                except Exception:
-                    pass
-
-        thread = threading.Thread(target=_run, daemon=True)
-        thread.start()
-
-        produced = []
         n_tokens = 0
-        for chunk in streamer:
-            if not chunk:
-                continue
-            sw.mark_first_token()
-            produced.append(chunk)
-            n_tokens += 1
-            yield chunk, self._partial_metrics(prompt, prompt_tokens, n_tokens, sw, sampler)
+        output_parts: list[str] = []
+        prompt_tokens = 0
 
-        thread.join(timeout=30)
+        try:
+            stream = self._llm.create_chat_completion(
+                messages=messages,
+                max_tokens=prompt.max_new_tokens or cfg.max_new_tokens,
+                temperature=cfg.temperature,
+                top_p=cfg.top_p,
+                top_k=cfg.top_k,
+                seed=cfg.seed,
+                stream=True,
+            )
+
+            for chunk in stream:
+                delta = (chunk.get("choices", [{}])[0]
+                         .get("delta", {})
+                         .get("content") or "")
+                if delta:
+                    sw.mark_first_token()
+                    output_parts.append(delta)
+                    n_tokens += 1
+
+                elapsed = time.perf_counter() - sw.start_t
+                partial = GenerationMetrics(
+                    prompt_id=prompt.id,
+                    category=prompt.category,
+                    model_id=cfg.model_id,
+                    engine_label=cfg.label,
+                    tokens_generated=n_tokens,
+                    prompt_tokens=prompt_tokens,
+                    context_length=prompt_tokens + n_tokens,
+                    time_to_first_token_s=sw.ttft,
+                    total_runtime_s=round(elapsed, 4),
+                    tokens_per_second=round(n_tokens / max(elapsed, 1e-9), 3),
+                    device="metal" if cfg.n_gpu_layers != 0 else "cpu",
+                    output_text="".join(output_parts),
+                )
+                yield delta, partial
+
+        except Exception as e:
+            self.support_notes.append(f"generation error: {type(e).__name__}: {e}")
+
         sw.stop()
         sampler.stop()
-        if thread_exc:
-            exc = thread_exc[0]
-            note = f"generation failed: {type(exc).__name__}: {exc}"
-            self.support_notes.append(note)
-        m = self._finalize(prompt, prompt_tokens, n_tokens, "".join(produced), sw, sampler)
-        yield "", m
-
-    def _partial_metrics(self, prompt, prompt_tokens, n, sw, sampler) -> GenerationMetrics:
-        elapsed = sw.total if sw.end_t else (
-            (sw.first_token_t or sw.start_t) and (__import__("time").perf_counter() - sw.start_t)
-        )
-        elapsed = elapsed or 1e-9
-        return GenerationMetrics(
-            prompt_id=prompt.id, category=prompt.category,
-            tokens_generated=n, prompt_tokens=prompt_tokens,
-            context_length=prompt_tokens + n,
-            time_to_first_token_s=sw.ttft,
-            total_latency_s=round(elapsed, 4),
-            tokens_per_second=round(n / elapsed, 3),
-            device=self.device,
-        )
-
-    def _finalize(self, prompt, prompt_tokens, n, output, sw, sampler) -> GenerationMetrics:
         res = sampler.summary()
         total = sw.total or 1e-9
-        decode_time = (total - (sw.ttft or 0.0)) or 1e-9
-        dbytes = _DTYPE_BYTES.get(self.config.dtype, 4)
-        m = GenerationMetrics(
-            prompt_id=prompt.id, category=prompt.category,
-            tokens_generated=n, prompt_tokens=prompt_tokens,
-            context_length=prompt_tokens + n,
-            time_to_first_token_s=round(sw.ttft, 4) if sw.ttft else None,
-            total_latency_s=round(total, 4),
-            tokens_per_second=round(n / total, 3),
-            decode_tokens_per_second=round(max(n - 1, 0) / decode_time, 3),
+
+        # Get prompt token count from the model's tokenizer
+        try:
+            formatted = self._llm.tokenize(
+                (prompt.system or "" + "\n" + prompt.user).encode())
+            prompt_tokens = len(formatted)
+        except Exception:
+            prompt_tokens = 0
+
+        expert_stats = self._expert_stats(n_tokens)
+        expert_bytes = self._expert_bytes_per_tok()
+
+        final = GenerationMetrics(
+            prompt_id=prompt.id,
+            category=prompt.category,
+            model_id=cfg.model_id,
+            engine_label=cfg.label,
+            tokens_generated=n_tokens,
+            prompt_tokens=prompt_tokens,
+            context_length=prompt_tokens + n_tokens,
+            time_to_first_token_s=sw.ttft,
+            total_runtime_s=round(total, 4),
+            tokens_per_second=round(n_tokens / total, 3),
             peak_memory_mb=res["peak_memory_mb"],
             current_memory_mb=res["current_memory_mb"],
             cpu_utilization_pct=res["cpu_utilization_pct"],
-            gpu_utilization_pct=res["gpu_utilization_pct"],
-            kv_cache_mb=kv_cache_mb(self.model.config, prompt_tokens, n, dbytes),
-            device=self.device,
-            output_text=output,
+            gpu_utilization_pct=None,   # Metal GPU % not available from Python
+            kv_cache_mb=None,           # llama.cpp KV cache not exposed to Python
+            expert_bytes_per_tok=expert_bytes,
+            page_cache_hit_rate=None,   # estimated in runner via warm/cold comparison
+            expert_stats=expert_stats,
+            device="metal" if cfg.n_gpu_layers != 0 else "cpu",
+            output_text="".join(output_parts),
         )
-        return m
+        yield "", final
 
-    # ---------------------------------------------------------- batch / once
+    # ── generate() ───────────────────────────────────────────────────────────
+
     def generate(self, prompt: Prompt) -> GenerationMetrics:
-        """Non-streaming generation, returns final metrics. Median over
-        config.measure_runs is handled by the benchmark runner, not here."""
+        """Non-streaming generation; returns the final metrics object."""
         last = None
         for _chunk, m in self.stream(prompt):
             last = m
         return last
 
-    def unload(self):
-        self.model = None
-        self.assistant_model = None
-        self.tokenizer = None
-        self._loaded = False
-        gc.collect()
-        try:
-            import torch
+    # ── Model info ───────────────────────────────────────────────────────────
 
-            if self.device == "mps":
-                torch.mps.empty_cache()
-            elif self.device == "cuda":
-                torch.cuda.empty_cache()
-        except Exception:
-            pass
+    def model_summary(self) -> dict:
+        if self._gguf_meta:
+            return self._gguf_meta.summary()
+        return {"model_id": self.config.model_id, "loaded": self._loaded}
