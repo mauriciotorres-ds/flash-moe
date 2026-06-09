@@ -12,3 +12,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 10,n_ctx=1024 — moderate context,ssd_streaming,exp010,discard,48.7842,51.2465,61.7317,-20.97,0.0486,2.4997,12344.75,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:49:05-04:00,
 11,n_gpu_layers=10 — partial Metal offload,gpu_offload,exp011,keep,64.9811,51.2465,64.9811,0.0,0.0141,1.9166,12546.98,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:50:03-04:00,
 12,n_gpu_layers=20 — half layers on Metal,gpu_offload,exp012,keep,74.6587,51.2465,74.6587,0.0,0.059,1.6618,11142.85,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:50:44-04:00,
+13,n_gpu_layers=-1 — all layers on Metal GPU,gpu_offload,exp013,keep,95.5518,51.2465,95.5518,0.0,0.0107,1.2352,9621.64,,513.191,,60,4,24,,True,measured,metal,2026-06-09T11:51:12-04:00,
