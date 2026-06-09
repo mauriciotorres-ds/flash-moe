@@ -81,3 +81,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=95.3751 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp018 — n_threads=1 — single thread
+
+- **Why attempted:** Single-thread baseline to measure threading overhead.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=20.9903 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
