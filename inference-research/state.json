@@ -1,10 +1,10 @@
 {
-  "current_experiment": 13,
-  "last_completed_experiment": 13,
+  "current_experiment": 14,
+  "last_completed_experiment": 14,
   "baseline_tps": 51.2465,
-  "best_tps": 95.5518,
+  "best_tps": 98.9629,
   "best_config_dict": {
-    "label": "exp013",
+    "label": "exp014",
     "model_id": "Qwen1.5-MoE-A2.7B",
     "n_ctx": 2048,
     "n_batch": 512,
@@ -13,7 +13,7 @@
     "n_gpu_layers": -1,
     "use_mmap": true,
     "use_mlock": false,
-    "flash_attn": false,
+    "flash_attn": true,
     "max_new_tokens": 128,
     "temperature": 0.0,
     "top_p": 1.0,
@@ -25,5 +25,5 @@
   "model": "Qwen1.5-MoE-A2.7B",
   "model_tier": "small",
   "gguf_path": "~/models/Qwen1.5-MoE-A2.7B-GGUF/Qwen1.5-MoE-A2.7B-Chat.Q4_K_M.gguf",
-  "last_updated": "2026-06-09T11:51:12-04:00"
+  "last_updated": "2026-06-09T11:51:40-04:00"
 }

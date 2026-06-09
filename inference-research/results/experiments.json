@@ -362,5 +362,31 @@
     "device": "metal",
     "timestamp": "2026-06-09T11:51:12-04:00",
     "notes": ""
+  },
+  {
+    "exp": "14",
+    "title": "n_gpu_layers=-1 + flash_attn=True",
+    "category": "gpu_offload",
+    "label": "exp014",
+    "decision": "keep",
+    "mean_tps": "98.9629",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "0.0",
+    "mean_ttft_s": "0.0104",
+    "mean_latency_s": "1.2076",
+    "peak_memory_mb": "9649.52",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T11:51:40-04:00",
+    "notes": ""
   }
 ]
