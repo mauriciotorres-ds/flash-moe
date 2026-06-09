@@ -39,3 +39,4 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,time_to_first_to
 37,exp037,aggregate,context,,,,1.2102,9457.29,,,,513.191,,,metal,True,measured,2026-06-09T12:06:40-04:00
 38,exp038,aggregate,reproducibility,,,,1.2071,9746.69,,,,513.191,,,metal,True,measured,2026-06-09T12:07:08-04:00
 39,exp039,aggregate,reproducibility,,,,2.2126,12993.34,,,,513.191,,,cpu,True,measured,2026-06-09T12:08:11-04:00
+40,exp040,aggregate,combo,,,,1.2088,9524.91,,,,513.191,,,metal,True,measured,2026-06-09T12:08:41-04:00

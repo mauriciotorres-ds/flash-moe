@@ -1038,5 +1038,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T12:08:11-04:00",
     "notes": ""
+  },
+  {
+    "exp": "40",
+    "title": "Final optimized stack (all validated wins combined)",
+    "category": "combo",
+    "label": "exp040",
+    "decision": "discard",
+    "mean_tps": "98.9954",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "0.03",
+    "mean_ttft_s": "0.0103",
+    "mean_latency_s": "1.2088",
+    "peak_memory_mb": "9524.91",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T12:08:41-04:00",
+    "notes": ""
   }
 ]
