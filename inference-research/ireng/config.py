@@ -12,15 +12,18 @@ from dataclasses import dataclass, asdict
 # ── Model directories (kept outside the repo) ─────────────────────────────────
 _MODEL_ROOT = os.path.expanduser("~/models")
 
-SMALL_MODEL_ID  = "Qwen1.5-MoE-A2.7B"
-MEDIUM_MODEL_ID = "Qwen3.5-35B-A3B"
+SMALL_MODEL_ID   = "Qwen1.5-MoE-A2.7B"
+MEDIUM_MODEL_ID  = "Qwen3.5-35B-A3B"
+MEDIUM2_MODEL_ID = "Qwen3.5-35B-A3B-IQ2"
 
-SMALL_GGUF_DIR  = os.path.join(_MODEL_ROOT, "Qwen1.5-MoE-A2.7B-GGUF")
-MEDIUM_GGUF_DIR = os.path.join(_MODEL_ROOT, "Qwen3.5-35B-A3B-GGUF")
+SMALL_GGUF_DIR   = os.path.join(_MODEL_ROOT, "Qwen1.5-MoE-A2.7B-GGUF")
+MEDIUM_GGUF_DIR  = os.path.join(_MODEL_ROOT, "Qwen3.5-35B-A3B-GGUF")
+MEDIUM2_GGUF_DIR = os.path.join(_MODEL_ROOT, "Qwen3.5-35B-A3B-IQ2-GGUF")
 
 MODEL_DIRS = {
-    SMALL_MODEL_ID:  SMALL_GGUF_DIR,
-    MEDIUM_MODEL_ID: MEDIUM_GGUF_DIR,
+    SMALL_MODEL_ID:   SMALL_GGUF_DIR,
+    MEDIUM_MODEL_ID:  MEDIUM_GGUF_DIR,
+    MEDIUM2_MODEL_ID: MEDIUM2_GGUF_DIR,
 }
 
 
@@ -57,6 +60,10 @@ class EngineConfig:
 
     # Flash attention
     flash_attn: bool = False
+
+    # Reasoning models (Qwen3.5): prefill an empty <think></think> block so the
+    # model skips chain-of-thought and answers directly.
+    disable_thinking: bool = False
 
     # Generation defaults (overridden per-prompt at call time)
     max_new_tokens: int   = 128
@@ -110,18 +117,51 @@ def baseline_config() -> EngineConfig:
     )
 
 
-def load_optimized_config() -> EngineConfig:
-    """Load winning config from results/best_config.json, or return baseline."""
+def load_optimized_config(model_id: str = SMALL_MODEL_ID) -> EngineConfig:
+    """Load winning config from results/best_config.json, or return baseline.
+
+    For the medium model the GPU-offload config OOMs on 24 GB machines, so we
+    apply the best CPU-only settings discovered during the small-model experiments
+    (n_threads=8, mmap=True) instead of forcing n_gpu_layers=-1.
+    """
     here = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(here, "..", "results", "best_config.json")
+    cfg = baseline_config()
     if os.path.exists(path):
         with open(path) as f:
             d = json.load(f)
         try:
-            return EngineConfig.from_dict(d.get("config", d))
+            cfg = EngineConfig.from_dict(d.get("config", d))
         except Exception:
             pass
-    return baseline_config()
+
+    if model_id == MEDIUM_MODEL_ID:
+        # 21 GB model can't fit alongside GPU buffers in 24 GB unified memory.
+        # Best validated CPU settings from small-model threading experiments.
+        cfg = EngineConfig.from_dict({
+            **cfg.to_dict(),
+            "model_id": model_id,
+            "n_gpu_layers": 0,
+            "flash_attn": False,
+            "n_threads": 8,
+            "n_threads_batch": 8,
+            "label": "optimized-cpu",
+            "notes": "Medium model: GPU offload disabled (OOM on 24GB), n_threads=8.",
+        })
+    elif model_id == MEDIUM2_MODEL_ID:
+        # 11 GB IQ2 quant — fits alongside GPU buffers; use full Metal offload
+        # plus best CPU settings from small-model experiments.
+        cfg = EngineConfig.from_dict({
+            **cfg.to_dict(),
+            "model_id": model_id,
+            "n_gpu_layers": -1,
+            "flash_attn": True,
+            "n_threads": 8,
+            "n_threads_batch": 8,
+            "label": "optimized-iq2",
+            "notes": "Medium IQ2 model: full GPU offload + flash_attn (fits in 24GB).",
+        })
+    return cfg
 
 
 def diff_configs(base: EngineConfig, opt: EngineConfig) -> dict:

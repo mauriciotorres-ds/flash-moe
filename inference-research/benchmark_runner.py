@@ -15,7 +15,7 @@ import sys
 import time
 
 from ireng import storage as st
-from ireng.config import SMALL_MODEL_ID, MEDIUM_MODEL_ID
+from ireng.config import SMALL_MODEL_ID, MEDIUM_MODEL_ID, MEDIUM2_MODEL_ID
 from ireng.engine import LlamaMoEEngine, EngineError
 from ireng.prompts import SUITE
 from baseline_engine import BaselineEngine
@@ -84,10 +84,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--engine", choices=["baseline", "optimized", "both"],
                     default="both")
-    ap.add_argument("--model", choices=["small", "medium"], default="small")
+    ap.add_argument("--model", choices=["small", "medium", "medium-iq2"], default="small")
     args = ap.parse_args()
 
-    model_id = MEDIUM_MODEL_ID if args.model == "medium" else SMALL_MODEL_ID
+    if args.model == "medium":
+        model_id = MEDIUM_MODEL_ID
+    elif args.model == "medium-iq2":
+        model_id = MEDIUM2_MODEL_ID
+    else:
+        model_id = SMALL_MODEL_ID
     print(f"Model: {model_id}")
 
     baseline_agg = optimized_agg = None

@@ -11,8 +11,7 @@ from ireng.engine import LlamaMoEEngine
 
 class OptimizedEngine(LlamaMoEEngine):
     def __init__(self, model_id: str = SMALL_MODEL_ID):
-        cfg = load_optimized_config()
-        cfg = EngineConfig.from_dict({**cfg.to_dict(), "model_id": model_id})
+        cfg = load_optimized_config(model_id)
         super().__init__(cfg)
 
 

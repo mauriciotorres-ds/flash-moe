@@ -110,6 +110,39 @@ class LlamaMoEEngine:
         msgs.append({"role": "user", "content": prompt.user})
         return msgs
 
+    def _chat_template(self) -> Optional[str]:
+        """The model's Jinja chat template from GGUF metadata, if present."""
+        try:
+            return self._llm.metadata.get("tokenizer.chat_template")
+        except Exception:
+            return None
+
+    def supports_thinking_toggle(self) -> bool:
+        """True if the chat template honours `enable_thinking` (Qwen3.5-style)."""
+        tmpl = self._chat_template()
+        return bool(tmpl and "enable_thinking" in tmpl)
+
+    def _render_prompt(self, prompt: Prompt, enable_thinking: bool) -> str:
+        """Render the chat template to a raw string with thinking on/off.
+
+        Used only when thinking must be disabled — passing `enable_thinking=False`
+        makes the template prefill an empty `<think></think>` block so the model
+        answers directly instead of emitting chain-of-thought.
+        """
+        from jinja2 import Environment
+        tmpl = self._chat_template()
+
+        def _raise(m):  # template helper
+            raise ValueError(m)
+
+        t = Environment().from_string(tmpl)
+        return t.render(
+            messages=self._messages(prompt),
+            add_generation_prompt=True,
+            enable_thinking=enable_thinking,
+            raise_exception=_raise,
+        )
+
     def _expert_stats(self, n_tokens: int) -> Optional[ExpertStats]:
         """Build ExpertStats from GGUF metadata + generation counts."""
         if not self._gguf_meta or not self._gguf_meta.is_moe:
@@ -166,9 +199,14 @@ class LlamaMoEEngine:
         output_parts: list[str] = []
         prompt_tokens = 0
 
+        # When thinking is disabled on a reasoning model, render the prompt with
+        # enable_thinking=False and use the raw completion API (chunks carry
+        # "text" rather than "delta.content").
+        disable_thinking = (getattr(cfg, "disable_thinking", False)
+                            and self.supports_thinking_toggle())
+
         try:
-            stream = self._llm.create_chat_completion(
-                messages=messages,
+            gen_kwargs = dict(
                 max_tokens=prompt.max_new_tokens or cfg.max_new_tokens,
                 temperature=cfg.temperature,
                 top_p=cfg.top_p,
@@ -176,11 +214,21 @@ class LlamaMoEEngine:
                 seed=cfg.seed,
                 stream=True,
             )
+            if disable_thinking:
+                stream = self._llm.create_completion(
+                    prompt=self._render_prompt(prompt, enable_thinking=False),
+                    **gen_kwargs,
+                )
+            else:
+                stream = self._llm.create_chat_completion(
+                    messages=messages, **gen_kwargs,
+                )
 
             for chunk in stream:
-                delta = (chunk.get("choices", [{}])[0]
-                         .get("delta", {})
-                         .get("content") or "")
+                choice = chunk.get("choices", [{}])[0]
+                delta = (choice.get("text")
+                         if disable_thinking
+                         else choice.get("delta", {}).get("content")) or ""
                 if delta:
                     sw.mark_first_token()
                     output_parts.append(delta)
