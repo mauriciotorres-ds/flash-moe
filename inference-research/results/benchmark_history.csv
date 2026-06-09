@@ -3,3 +3,4 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,time_to_first_to
 1,exp001,aggregate,ssd_streaming,,,,2.4189,9400.45,,,,513.191,,,cpu,True,measured,2026-06-09T11:38:35-04:00
 2,exp002,aggregate,ssd_streaming,,,,3.3435,16760.27,,,,513.191,,,cpu,True,measured,2026-06-09T11:40:20-04:00
 3,exp003,aggregate,ssd_streaming,,,,2.4656,9460.02,,,,513.191,,,cpu,True,measured,2026-06-09T11:41:21-04:00
+4,exp004,aggregate,ssd_streaming,,,,2.1626,15648.11,,,,513.191,,,cpu,True,measured,2026-06-09T11:42:22-04:00

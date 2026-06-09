@@ -3,3 +3,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 1,No mmap — load all weights into RAM,ssd_streaming,exp001,discard,50.3131,51.2465,51.2465,-1.82,0.0191,2.4189,9400.45,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:38:35-04:00,
 2,mmap + mlock — pin expert pages in RAM,ssd_streaming,exp002,discard,43.6297,51.2465,51.2465,-14.86,0.2636,3.3435,16760.27,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:40:20-04:00,
 3,No mmap + mlock (all weights locked in RAM),ssd_streaming,exp003,discard,50.2638,51.2465,51.2465,-1.92,0.0293,2.4656,9460.02,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:41:21-04:00,
+4,"Warm cache run (second inference, same process)",ssd_streaming,exp004,keep,58.2281,51.2465,58.2281,0.0,0.0503,2.1626,15648.11,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T11:42:22-04:00,

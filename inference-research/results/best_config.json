@@ -1,9 +1,10 @@
 {
-  "current_experiment": 4,
-  "last_completed_experiment": 4,
-  "baseline_tps": 51.2465,
-  "best_tps": 58.2281,
-  "best_config_dict": {
+  "exp": 4,
+  "label": "exp004",
+  "mean_tps": 58.2281,
+  "data_source": "measured",
+  "updated": "2026-06-09T11:42:22-04:00",
+  "config": {
     "label": "exp004",
     "model_id": "Qwen1.5-MoE-A2.7B",
     "n_ctx": 2048,
@@ -20,10 +21,5 @@
     "top_k": 1,
     "seed": 1234,
     "notes": "Naive baseline: mmap on, CPU-only, no flash-attn, trust OS page cache."
-  },
-  "status": "running",
-  "model": "Qwen1.5-MoE-A2.7B",
-  "model_tier": "small",
-  "gguf_path": "~/models/Qwen1.5-MoE-A2.7B-GGUF/Qwen1.5-MoE-A2.7B-Chat.Q4_K_M.gguf",
-  "last_updated": "2026-06-09T11:42:22-04:00"
+  }
 }

@@ -102,5 +102,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T11:41:21-04:00",
     "notes": ""
+  },
+  {
+    "exp": "4",
+    "title": "Warm cache run (second inference, same process)",
+    "category": "ssd_streaming",
+    "label": "exp004",
+    "decision": "keep",
+    "mean_tps": "58.2281",
+    "baseline_tps": "51.2465",
+    "best_tps": "58.2281",
+    "delta_pct_vs_best": "0.0",
+    "mean_ttft_s": "0.0503",
+    "mean_latency_s": "2.1626",
+    "peak_memory_mb": "15648.11",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "cpu",
+    "timestamp": "2026-06-09T11:42:22-04:00",
+    "notes": ""
   }
 ]
