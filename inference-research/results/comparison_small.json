@@ -1,0 +1,13 @@
+{
+  "model_id": "Qwen1.5-MoE-A2.7B",
+  "quant": "Q4_K_M (8.84 GB)",
+  "baseline_tps": 51.2465,
+  "optimized_tps": 98.9629,
+  "speedup": 1.931,
+  "baseline_device": "cpu",
+  "optimized_device": "metal",
+  "key_optimization": "n_gpu_layers=-1 + flash_attn=True",
+  "notes": "41 experiments on this model",
+  "data_source": "measured",
+  "timestamp": "2026-06-09T13:27:35-04:00"
+}

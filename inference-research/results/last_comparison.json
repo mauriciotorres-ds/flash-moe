@@ -1,0 +1,10 @@
+{
+  "baseline_tps": 18.704,
+  "optimized_tps": 45.6238,
+  "speedup": 2.439,
+  "baseline_mem": 11510.3,
+  "optimized_mem": 11240.5,
+  "data_source": "measured",
+  "model_id": "Qwen3.5-35B-A3B-IQ2",
+  "timestamp": "2026-06-09T13:04:25-04:00"
+}

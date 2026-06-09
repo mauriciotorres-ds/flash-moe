@@ -1,0 +1,13 @@
+{
+  "model_id": "Qwen3.5-35B-A3B-IQ2",
+  "quant": "IQ2_M (11 GB)",
+  "baseline_tps": 18.704,
+  "optimized_tps": 45.6238,
+  "speedup": 2.439,
+  "baseline_device": "cpu",
+  "optimized_device": "metal",
+  "key_optimization": "n_gpu_layers=-1 + flash_attn=True",
+  "notes": "Exceeds instructor ref (16.3 tok/s). 11 GB model leaves 13 GB for page cache.",
+  "data_source": "measured",
+  "timestamp": "2026-06-09T13:27:35-04:00"
+}

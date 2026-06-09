@@ -21,7 +21,7 @@
     "seed": 1234,
     "notes": "Naive baseline: mmap on, CPU-only, no flash-attn, trust OS page cache."
   },
-  "status": "running",
+  "status": "complete",
   "model": "Qwen1.5-MoE-A2.7B",
   "model_tier": "small",
   "gguf_path": "~/models/Qwen1.5-MoE-A2.7B-GGUF/Qwen1.5-MoE-A2.7B-Chat.Q4_K_M.gguf",
