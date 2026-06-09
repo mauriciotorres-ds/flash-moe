@@ -30,3 +30,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 28,Best GPU + n_ctx=512 (small KV cache),combo,exp028,discard,98.9824,51.2465,98.9629,0.02,0.0104,1.2068,9399.39,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:02:34-04:00,
 29,Best GPU + n_batch=1024,combo,exp029,discard,98.7484,51.2465,98.9629,-0.22,0.0104,1.2092,9698.97,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:03:02-04:00,
 30,"Greedy decode (temp=0, top_k=1) — confirm baseline",decoding,exp030,discard,98.599,51.2465,98.9629,-0.37,0.0104,1.215,9699.69,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:03:29-04:00,
+31,"Sampling (temp=0.7, top_k=50, top_p=0.9)",decoding,exp031,discard,98.5137,51.2465,98.9629,-0.45,0.0104,1.1697,9717.4,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:03:56-04:00,
