@@ -32,3 +32,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=55.5806 vs best=58.2281
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp006 — n_batch=1024 — larger expert read batch
+
+- **Why attempted:** Larger batch amortises overhead for long prompts.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=58.7419 vs best=58.2281
+- **Lessons learned:** Config delta did not help on this hardware.
+
