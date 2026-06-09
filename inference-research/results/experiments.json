@@ -50,5 +50,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T11:38:35-04:00",
     "notes": ""
+  },
+  {
+    "exp": "2",
+    "title": "mmap + mlock \u2014 pin expert pages in RAM",
+    "category": "ssd_streaming",
+    "label": "exp002",
+    "decision": "discard",
+    "mean_tps": "43.6297",
+    "baseline_tps": "51.2465",
+    "best_tps": "51.2465",
+    "delta_pct_vs_best": "-14.86",
+    "mean_ttft_s": "0.2636",
+    "mean_latency_s": "3.3435",
+    "peak_memory_mb": "16760.27",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "cpu",
+    "timestamp": "2026-06-09T11:40:20-04:00",
+    "notes": ""
   }
 ]
