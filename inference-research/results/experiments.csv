@@ -25,3 +25,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 23,flash_attn=True on CPU,attention,exp023,discard,57.6228,51.2465,98.9629,-41.77,0.0477,2.0277,14472.61,,513.191,,60,4,24,,True,measured,cpu,2026-06-09T12:00:15-04:00,
 24,flash_attn=True + best thread count,attention,exp024,discard,99.1319,51.2465,98.9629,0.17,0.0104,1.2027,9494.8,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:00:44-04:00,
 25,Best GPU layers + best n_threads,combo,exp025,discard,98.7972,51.2465,98.9629,-0.17,0.0106,1.2095,9644.16,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:01:12-04:00,
+26,Best GPU + flash_attn + best threads,combo,exp026,discard,99.0712,51.2465,98.9629,0.11,0.0106,1.2081,9652.76,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:01:39-04:00,

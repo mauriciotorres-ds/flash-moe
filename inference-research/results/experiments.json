@@ -674,5 +674,31 @@
     "device": "metal",
     "timestamp": "2026-06-09T12:01:12-04:00",
     "notes": ""
+  },
+  {
+    "exp": "26",
+    "title": "Best GPU + flash_attn + best threads",
+    "category": "combo",
+    "label": "exp026",
+    "decision": "discard",
+    "mean_tps": "99.0712",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "0.11",
+    "mean_ttft_s": "0.0106",
+    "mean_latency_s": "1.2081",
+    "peak_memory_mb": "9652.76",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T12:01:39-04:00",
+    "notes": ""
   }
 ]
