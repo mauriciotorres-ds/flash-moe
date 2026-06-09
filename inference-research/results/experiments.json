@@ -986,5 +986,31 @@
     "device": "metal",
     "timestamp": "2026-06-09T12:06:40-04:00",
     "notes": ""
+  },
+  {
+    "exp": "38",
+    "title": "Seed stability check (3 identical runs)",
+    "category": "reproducibility",
+    "label": "exp038",
+    "decision": "discard",
+    "mean_tps": "98.8402",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "-0.12",
+    "mean_ttft_s": "0.0104",
+    "mean_latency_s": "1.2071",
+    "peak_memory_mb": "9746.69",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T12:07:08-04:00",
+    "notes": ""
   }
 ]

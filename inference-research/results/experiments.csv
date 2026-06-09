@@ -37,3 +37,4 @@ exp,title,category,label,decision,mean_tps,baseline_tps,best_tps,delta_pct_vs_be
 35,n_ctx=768 — between 512 and 1024,context,exp035,discard,99.6455,51.2465,98.9629,0.69,0.0104,1.1999,9493.87,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:05:45-04:00,
 36,n_ctx=2048 + n_batch=256 combo,context,exp036,discard,99.5421,51.2465,98.9629,0.59,0.0106,1.2022,9744.16,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:06:13-04:00,
 37,n_ctx=512 + n_batch=256,context,exp037,discard,98.7469,51.2465,98.9629,-0.22,0.0104,1.2102,9457.29,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:06:40-04:00,
+38,Seed stability check (3 identical runs),reproducibility,exp038,discard,98.8402,51.2465,98.9629,-0.12,0.0104,1.2071,9746.69,,513.191,,60,4,24,,True,measured,metal,2026-06-09T12:07:08-04:00,
