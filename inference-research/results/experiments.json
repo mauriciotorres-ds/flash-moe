@@ -622,5 +622,31 @@
     "device": "cpu",
     "timestamp": "2026-06-09T12:00:15-04:00",
     "notes": ""
+  },
+  {
+    "exp": "24",
+    "title": "flash_attn=True + best thread count",
+    "category": "attention",
+    "label": "exp024",
+    "decision": "discard",
+    "mean_tps": "99.1319",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "0.17",
+    "mean_ttft_s": "0.0104",
+    "mean_latency_s": "1.2027",
+    "peak_memory_mb": "9494.8",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T12:00:44-04:00",
+    "notes": ""
   }
 ]

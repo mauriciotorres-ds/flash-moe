@@ -123,3 +123,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=57.6228 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp024 — flash_attn=True + best thread count
+
+- **Why attempted:** Adding flash attn to the current best CPU config further reduces attention overhead.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=99.1319 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
