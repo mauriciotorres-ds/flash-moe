@@ -53,3 +53,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=40.1689 vs best=61.7317
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp010 — n_ctx=1024 — moderate context
+
+- **Why attempted:** 1024-token context balances KV memory and generation length.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=48.7842 vs best=61.7317
+- **Lessons learned:** Config delta did not help on this hardware.
+

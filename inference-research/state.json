@@ -1,6 +1,6 @@
 {
-  "current_experiment": 9,
-  "last_completed_experiment": 9,
+  "current_experiment": 10,
+  "last_completed_experiment": 10,
   "baseline_tps": 51.2465,
   "best_tps": 61.7317,
   "best_config_dict": {
@@ -25,5 +25,5 @@
   "model": "Qwen1.5-MoE-A2.7B",
   "model_tier": "small",
   "gguf_path": "~/models/Qwen1.5-MoE-A2.7B-GGUF/Qwen1.5-MoE-A2.7B-Chat.Q4_K_M.gguf",
-  "last_updated": "2026-06-09T11:47:52-04:00"
+  "last_updated": "2026-06-09T11:49:05-04:00"
 }
