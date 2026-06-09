@@ -151,3 +151,10 @@ Model: Qwen1.5-MoE-A2.7B Q4_K_M GGUF · Hardware: Apple M4 · 24 GB unified memo
 - **Performance impact:** mean_tps=99.0691 vs best=98.9629
 - **Lessons learned:** Config delta did not help on this hardware.
 
+## exp028 — Best GPU + n_ctx=512 (small KV cache)
+
+- **Why attempted:** Reducing KV cache with best GPU config frees memory for expert page cache, improving hit rate.
+- **Why it failed / was discarded:** Did not improve tok/s above keep threshold.
+- **Performance impact:** mean_tps=98.9824 vs best=98.9629
+- **Lessons learned:** Config delta did not help on this hardware.
+
