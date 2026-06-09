@@ -15,3 +15,4 @@ exp,label,prompt_id,category,tokens_generated,tokens_per_second,time_to_first_to
 13,exp013,aggregate,gpu_offload,,,,1.2352,9621.64,,,,513.191,,,metal,True,measured,2026-06-09T11:51:12-04:00
 14,exp014,aggregate,gpu_offload,,,,1.2076,9649.52,,,,513.191,,,metal,True,measured,2026-06-09T11:51:40-04:00
 15,exp015,aggregate,gpu_offload,,,,1.2063,9679.1,,,,513.191,,,metal,True,measured,2026-06-09T11:52:07-04:00
+16,exp016,aggregate,gpu_offload,,,,1.2342,9681.86,,,,513.191,,,metal,True,measured,2026-06-09T11:52:35-04:00
