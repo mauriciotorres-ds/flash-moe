@@ -960,5 +960,31 @@
     "device": "metal",
     "timestamp": "2026-06-09T12:06:13-04:00",
     "notes": ""
+  },
+  {
+    "exp": "37",
+    "title": "n_ctx=512 + n_batch=256",
+    "category": "context",
+    "label": "exp037",
+    "decision": "discard",
+    "mean_tps": "98.7469",
+    "baseline_tps": "51.2465",
+    "best_tps": "98.9629",
+    "delta_pct_vs_best": "-0.22",
+    "mean_ttft_s": "0.0104",
+    "mean_latency_s": "1.2102",
+    "peak_memory_mb": "9457.29",
+    "kv_cache_mb": "",
+    "expert_bytes_per_tok_mb": "513.191",
+    "page_cache_hit_rate": "",
+    "n_experts": "60",
+    "n_experts_used": "4",
+    "n_moe_layers": "24",
+    "quality_ok": "",
+    "measured": "True",
+    "data_source": "measured",
+    "device": "metal",
+    "timestamp": "2026-06-09T12:06:40-04:00",
+    "notes": ""
   }
 ]
