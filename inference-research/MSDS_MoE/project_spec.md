@@ -22,6 +22,28 @@ The final result should resemble an inference-engine research project rather tha
 
 ---
 
+## Two Engine Tracks: Reference Runtime + From-Scratch Engine
+
+This project ships **two** inference engines, and both are kept:
+
+**Track A — Reference-runtime engine (existing, `llama-cpp-python`).**
+The current `LlamaMoEEngine` (`ireng/engine.py`), `baseline_engine.py`, `optimized_engine.py`, the benchmark harness, and the dashboard wrap `llama-cpp-python`. This track is **retained as-is**. It serves as the productized, robust runtime that powers the dashboard's live playground and comparison mode, as a **correctness oracle** for the from-scratch engine, and as a reference throughput point. Keep all of it working.
+
+**Track B — From-scratch engine (new, required).**
+Add a second engine, written from scratch, that implements the inference hot path **yourself**: GGUF file parsing and tensor/expert mapping, the forward pass (embeddings, attention, RMSNorm, RoPE, KV cache), the MoE router and top-K expert selection, the per-token **on-demand expert load from SSD/mmap**, dequantization of quantized expert weights, and the greedy/sampling decode loop. You may use general-purpose numerics primitives (NumPy/BLAS, an FFI to `mmap`/`pread`, and—optionally—NEON/AVX or Metal/CUDA kernels you write), but the inference logic and the **expert-streaming strategy must be your own code** — not a call into `llama-cpp-python`, `llama.cpp`, `ollama`, `transformers`, `vLLM`, or any other prebuilt runtime.
+
+**Why two tracks:** the from-scratch engine is what makes this an inference-engine research project — the expert-streaming hot path has to be *your* code for the streaming experiments (`pread` vs `mmap` vs `mlock`, page-cache vs custom LRU, prefetch/prediction) to be real things you profile and tune. A wrapper hides exactly that machinery. The reference-runtime track stays because it already works, gives the dashboard a fast/robust path, and provides an honest oracle and comparison baseline.
+
+**Which track each deliverable belongs to:**
+- The **expert-streaming experiments** — the graded core — must run on the **from-scratch (Track B)** engine, since they modify code only that engine owns. Track B must therefore have its own baseline (naive from-scratch decode) and its own optimized configuration.
+- The **dashboard, live playground, and Compare-Both mode** may continue to use the **Track A** runtime (and may additionally expose Track B). The dashboard is explicitly retained.
+- Experiments that are pure run-flags on the reference runtime (e.g. `n_gpu_layers`, `use_mmap`, `flash_attn` toggles in `llama-cpp-python`) are fine to keep as **Track A** experiments, but they do **not** by themselves satisfy the from-scratch requirement — the streaming hot-path work must exist on Track B.
+- When comparing the two in the report, label Track A clearly as the **reference runtime**, not as the from-scratch engine.
+
+The bar: by the end, a reader can point to **your own code** that parses GGUF, routes to top-K experts, and streams only those experts from SSD per token — and can see the experiments that tuned that path. Keep the llama.cpp track and the dashboard; **add** the from-scratch track beside them.
+
+---
+
 ## Target Models
 
 This project runs on **real Qwen MoE models across three size tiers**, so the engine can be developed quickly on the smallest and then shown to scale to much larger models on the *same* laptop. Every tier is a genuine sparse MoE — only K experts activate per token — so the expert-streaming work is real at every size. (Do **not** substitute a small *dense* model: with no experts there is nothing to stream and the project loses its point.)
@@ -102,7 +124,7 @@ If a quant is sharded (e.g. `...Q4_K_M-00001-of-0000N.gguf`), point the engine a
 
 ### Notes
 - **Auth:** the GGUF mirrors are normally ungated. If a download returns HTTP 401/403, run `hf auth login` with a Hugging Face token and accept the model license on its page first.
-- **llama.cpp compatibility:** the Qwen3/3.5 MoEs use newer (and hybrid Gated-DeltaNet) architectures. Confirm each GGUF repo's README states current-`llama.cpp` support before relying on a third-party runtime; the older Qwen1.5-MoE (Qwen2MoE arch) is broadly supported, but the larger Qwen3 MoEs may need a recent build.
+- **Architecture support (both tracks):** the Qwen3/3.5 MoEs use newer (and hybrid Gated-DeltaNet) architectures. For **Track A** (`llama-cpp-python`), confirm each GGUF repo's README states current-`llama.cpp` support and use a recent build. For **Track B** (from scratch), your own GGUF parser and forward pass must handle them — budget time for it. The older Qwen1.5-MoE (Qwen2MoE arch) is the simplest and is why it's the development tier for both tracks.
 - **Verification:** after each download, record the file size and SHA/commit hash in `state.json` (or a `MODEL.md`) so the exact weights used are reproducible.
 - **Order:** download the **Small** tier first and build everything against it; only pull **Medium** once the 40-experiment cycle is working.
 - **Large tier is optional and download-last:** do **not** download the **Large** model (Qwen3-235B-A22B, ~142 GB) until the full experiment cycle on Small is complete *and* the engine has been validated on Medium. Before downloading it, confirm there is enough free disk (~142 GB plus headroom) **and** that it can realistically run — with only ~22B active params/token it streams ~10–12 GB per token, which a 32 GB-RAM machine cannot keep warm. **If there is not enough memory or disk, skip the Large tier entirely** and treat the project as complete with the **Small (2.7B)** and **Medium (35B)** models only. The Large run is a bonus "scaling" demonstration, never a requirement.
@@ -164,7 +186,9 @@ No experiment is considered complete until its results exist on disk.
 
 ## Baseline Engine Requirements
 
-Create a reproducible **baseline MoE inference engine** that runs the Small model (Qwen1.5-MoE-A2.7B) end to end. The baseline is the naive, unoptimized reference: it loads the model the simplest way that works (e.g., full GGUF load, or all weights resident / faulted in with no streaming strategy) and decodes greedily. Its only job is to be a correct, reproducible control that every optimization is measured against.
+Create a reproducible **baseline MoE inference engine** that runs the Small model (Qwen1.5-MoE-A2.7B) end to end. The baseline is the naive, unoptimized reference: it loads the model the simplest way that works (full GGUF load with all weights resident / faulted in and no streaming strategy) and decodes greedily. Its only job is to be a correct, reproducible control that every optimization is measured against.
+
+Each track has its own baseline (see "Two Engine Tracks"): **Track A** keeps the existing `llama-cpp-python` baseline (`baseline_engine.py`); **Track B** adds a naive *from-scratch* baseline — an unoptimized version of your own engine — which is the control the expert-streaming experiments are measured against. The streaming experiments must be measured against the Track B baseline, not Track A.
 
 Measure:
 - Tokens generated
@@ -274,12 +298,11 @@ All reported metrics must come from actual execution on the real model.
 - Compare access strategies: `pread`, `mmap`, `mmap` + `mlock`, async/prefetch I/O.
 - Explore expert caching policies (LRU, keep-shared-expert-resident) and expert prefetch/prediction.
 
-**Runtime Optimizations**
-- `torch.inference_mode()` / `torch.no_grad()`
-- `torch.compile()` / graph capture
-- optimized generation loops
+**Runtime Optimizations** *(applied to your own engine — not a framework's runtime)*
+- command/graph capture or precomputed dispatch (e.g. reusing Metal/CUDA command buffers, a captured compute graph) — the from-scratch analog of `torch.compile()`; there is no autograd to disable, so no `torch.no_grad()`/`inference_mode()` experiment applies
+- optimized generation/decode loops (avoid reallocations, hoist work out of the per-token path)
 - tokenizer optimizations
-- GGUF parsing / fast model load
+- GGUF parsing / fast model load (lazy tensor mapping, faster startup)
 
 **Memory Optimizations**
 - KV cache improvements and cache layouts
@@ -384,8 +407,10 @@ reports/
 
 state.json          ← session continuity checkpoint
 failure_log.md
-baseline_engine.py
-optimized_engine.py
+baseline_engine.py            ← Track A (reference runtime, llama-cpp-python)
+optimized_engine.py           ← Track A (reference runtime, llama-cpp-python)
+scratch_baseline_engine.py    ← Track B (from-scratch, required)
+scratch_optimized_engine.py   ← Track B (from-scratch, required)
 ```
 
 ---
@@ -412,6 +437,12 @@ After all experiments, create:
 - `optimized_engine.py`
 
 The optimized engine must be the highest-performing validated configuration, and its expert-streaming strategy must be the best one discovered through the experiments.
+
+Because the project ships two tracks (see "Two Engine Tracks"), keep both clearly:
+- **Track A:** the existing `baseline_engine.py` / `optimized_engine.py` (`llama-cpp-python`), retained for the dashboard and as the reference runtime.
+- **Track B:** a from-scratch baseline engine and a from-scratch optimized engine, where the optimized one carries the best expert-streaming strategy discovered through the experiments. This is the engine that satisfies the from-scratch requirement; it must not delegate token generation to a prebuilt runtime.
+
+Name the Track B files so they are unambiguous (e.g. `scratch_baseline_engine.py` / `scratch_optimized_engine.py`) and keep the Track A files as they are.
 
 ---
 
