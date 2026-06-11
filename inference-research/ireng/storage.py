@@ -89,7 +89,7 @@ def _empty(path: str) -> bool:
 def append_experiment_row(row: Dict[str, Any]):
     """Append to experiments.csv and rebuild experiments.json."""
     need_header = _empty(EXPERIMENTS_CSV)
-    with open(EXPERIMENTS_CSV, "a", newline="") as f:
+    with open(EXPERIMENTS_CSV, "a", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=EXP_FIELDS, extrasaction="ignore")
         if need_header:
             w.writeheader()
@@ -105,7 +105,7 @@ def _rebuild_experiments_json():
 def read_experiments() -> List[Dict[str, Any]]:
     if not os.path.exists(EXPERIMENTS_CSV):
         return []
-    with open(EXPERIMENTS_CSV) as f:
+    with open(EXPERIMENTS_CSV, encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 
@@ -119,7 +119,7 @@ def append_benchmark_history(rows: List[Dict[str, Any]]):
         "context_length", "device", "measured", "data_source", "timestamp",
     ]
     need_header = _empty(BENCH_HISTORY_CSV)
-    with open(BENCH_HISTORY_CSV, "a", newline="") as f:
+    with open(BENCH_HISTORY_CSV, "a", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         if need_header:
             w.writeheader()
@@ -131,7 +131,7 @@ def write_leaderboard(rows: List[Dict[str, Any]]):
     """rows already sorted best-first."""
     fields = ["rank", "exp", "label", "mean_tps", "delta_pct_vs_baseline",
               "decision", "data_source"]
-    with open(LEADERBOARD_CSV, "w", newline="") as f:
+    with open(LEADERBOARD_CSV, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         w.writeheader()
         for i, r in enumerate(rows, 1):
