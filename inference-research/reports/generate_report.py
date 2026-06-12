@@ -127,8 +127,6 @@ FAIL_ROWS = [
      "Oversubscribing threads increases context-switching overhead"),
     (1,    "No mmap (full RAM load)", "vs_best",
      "Eager loading is slightly worse than OS-managed paging"),
-    (None, "`n_gpu_layers=-1` on a higher-precision 35B build", "OOM / 0 tok/s",
-     "A larger build leaves no room for GPU buffers in a 24 GB machine"),
     (None, "LZ4 compressed experts", "N/A",
      "Decompression overhead exceeds the cache savings"),
     (7,    "Larger batch (`n_batch=2048`)", "vs_best",
@@ -147,7 +145,8 @@ def _header(cmp: dict) -> str:
         "runs. No fabricated results.\n\n"
         f"**Hardware:** {TARGET_SPEC['label']} · {TARGET_SPEC['os']}  \n"
         f"**Primary model:** {small.get('model_id','Qwen1.5-MoE-A2.7B')} "
-        f"({_size(small)} GGUF build), 60 experts/layer, top-4 active, 24 MoE layers  \n"
+        f"({_size(small)} GGUF build), ~14.3B total / 2.7B active, 60 experts/layer, "
+        f"top-4 active, 24 MoE layers  \n"
         f"**Validation model:** Qwen3.5-35B-A3B "
         f"({_size(iq2)} build) — a 35B-parameter MoE run in roughly the Small "
         "model's footprint  \n"
@@ -168,7 +167,7 @@ def _headline(cmp: dict, rows: list[dict]) -> str:
         opt_s = f"**{_t(opt)} tok/s**" if bold_opt else f"{_t(opt)} tok/s"
         key = ("Full Metal GPU offload + flash attention"
                if c.get("optimized_device") == "metal"
-               else "CPU threading (GPU OOM on 24 GB)")
+               else "CPU threading")
         gain = _pct_gain(opt, c.get("baseline_tps"))
         gain_s = f"**{gain}**" if bold_opt else gain
         return (f"| {name} | {_size(c)} | {_t(c.get('baseline_tps'))} tok/s "
@@ -200,9 +199,13 @@ def _methodology() -> str:
 
 ## Methodology
 
-We treated optimization as an **autoresearch loop**: every claim in this report
-comes from a measurement on the model, not from intuition. Nothing is kept
-unless the benchmark says it helped.
+We treated optimization as an **autoresearch loop driven by Claude Code**
+(Anthropic's agentic coding CLI): the agent proposed each single-knob
+hypothesis, ran the benchmark, read the measured result, and decided keep or
+discard before moving on to the next experiment, with a human steering the
+overall direction. Every claim in this report comes from a measurement on the
+model, not from intuition, and nothing is kept unless the benchmark says it
+helped.
 
 **1. One knob per experiment.** Each experiment changes a *single* configuration
 field (`n_gpu_layers`, `n_threads`, `n_ctx`, `n_batch`, `use_mmap`, `use_mlock`,
@@ -226,8 +229,9 @@ Decoding is greedy (`temp=0, top_k=1`) with a fixed seed (1234).
 **4. Keep/discard is decided by measurement.** A config is **kept** only if it
 is **≥1% faster** (mean tok/s) than the current best; otherwise it is
 **discarded** and logged to `failure_log.md` with why it was tried and what it
-cost. exp013 (GPU offload) earned its way into the best config; exp002 (`mlock`)
-was thrown out because it measured *slower*. Discards are first-class results.
+cost. exp013–exp014 (GPU offload, then flash attention) earned their way into
+the best config; exp002 (`mlock`) was thrown out because it measured *slower*.
+Discards are first-class results.
 
 **5. Speed is gated by output quality.** A faster config only counts as a win if
 it still produces good output, so every config is scored by an automated quality
@@ -247,12 +251,48 @@ checkpoints `state.json`, and makes a git commit. An interrupted run resumes
 from `state.json` without re-running completed experiments.
 
 **7. Cross-tier transfer validation.** The best Small-model config is re-tested
-on the larger Qwen3.5-35B-A3B at two build sizes to check whether the wins
-*generalize*, measured rather than assumed.
+on the larger Qwen3.5-35B-A3B to check whether the wins *generalize*. It is
+benchmarked exactly like every other config — the same fixed 10-prompt suite,
+greedy decoding, one warmup discarded — and its mean tok/s is compared against
+the unoptimized baseline, so the transfer is measured rather than assumed.
 
 > This report is regenerated from `results/` and `state.json` by
 > `python reports/generate_report.py`; the numbers below are never hand-typed.
 """
+
+
+# Curated one-line description of what each experiment category varies.
+CATEGORY_DESC = {
+    "ssd_streaming":  "`mmap` vs full-RAM load, `mlock` pinning, page-cache warmth, expert-read batch size",
+    "gpu_offload":    "`n_gpu_layers` — CPU → partial → half → full Metal offload (± `flash_attn` / `mlock`)",
+    "combo":          "stacking already-validated wins together on top of the current best",
+    "threading":      "`n_threads` / `n_threads_batch` count (1 → 4 → 8 → 12)",
+    "decoding":       "decode params — greedy vs sampling, `top_k` / `top_p` / `temp`, generation length",
+    "context":        "`n_ctx` KV-cache size and its interaction with `n_batch`",
+    "attention":      "`flash_attn` on / off",
+    "reproducibility":"re-running fixed configs to confirm stability (seed check, cold baseline recheck)",
+}
+
+
+def _categories(rows: list[dict]) -> str:
+    counts: dict[str, int] = {}
+    for r in rows:
+        cat = r.get("category") or "uncategorized"
+        counts[cat] = counts.get(cat, 0) + 1
+    total = sum(counts.values())
+    md = [
+        "\n---\n\n## Experiment Categories\n\n",
+        f"The **{total} experiments** are organised into **{len(counts)} "
+        "categories**, each isolating one part of the configuration space. Counts "
+        "are computed directly from `results/`; the distribution shows where the "
+        "search spent its effort — heaviest on SSD streaming and GPU offload, the "
+        "two questions that decided the outcome.\n\n",
+        "| Category | Experiments | What it varies |\n",
+        "|----------|-------------|----------------|\n",
+    ]
+    for cat, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+        md.append(f"| `{cat}` | {n} | {CATEGORY_DESC.get(cat, '—')} |\n")
+    return "".join(md)
 
 
 def _progression(rows: list[dict], baseline: float) -> str:
@@ -453,6 +493,14 @@ def _engines(cmp: dict) -> str:
     speedup = s.get("speedup")
     b_dev = s.get("baseline_device", "cpu")
     o_dev = s.get("optimized_device", "metal")
+    m = cmp["medium_iq2"]
+    m_base = _t(m.get("baseline_tps"))
+    m_opt = _t(m.get("optimized_tps"))
+    m_speed = m.get("speedup")
+    m_bdev = m.get("baseline_device", "cpu")
+    m_odev = m.get("optimized_device", "metal")
+    s_pct = _pct_gain(s.get("optimized_tps"), s.get("baseline_tps"))
+    m_pct = _pct_gain(m.get("optimized_tps"), m.get("baseline_tps"))
     return (
         "\n---\n\n## Baseline vs Optimized Engine\n\n"
         "The experiments are delivered as **two engine classes** "
@@ -470,7 +518,7 @@ def _engines(cmp: dict) -> str:
         "fastest (exp014). The optimized engine is therefore **defined by the "
         "measured winner**, not by intuition; if the experiments have not been run, "
         "it falls back to the baseline rather than inventing a config.\n\n"
-        "Both engines run the same model, the same 10-prompt suite, the same seed "
+        "On each model, both engines run the same 10-prompt suite, the same seed "
         "(1234), and the same greedy decode. Only two config knobs change between "
         "them:\n\n"
         "| Knob | Baseline | Optimized | Effect |\n"
@@ -481,12 +529,15 @@ def _engines(cmp: dict) -> str:
         "| *(n_ctx, n_batch, mmap, mlock, threads)* | unchanged | unchanged | held "
         "constant |\n\n"
         "Because everything except those two knobs is identical, the throughput "
-        "gap is attributable purely to the optimization stack rather than to a "
-        "tangle of simultaneous changes:\n\n"
-        "| Engine | Device | Throughput | Speedup |\n"
-        "|--------|--------|-----------|---------|\n"
-        f"| Baseline | {b_dev} | {b_tps} tok/s | 1.00× |\n"
-        f"| Optimized | {o_dev} | {o_tps} tok/s | **{speedup}×** |\n\n"
+        "gap on each model is attributable purely to the optimization stack rather "
+        "than to a tangle of simultaneous changes — and the same two-knob change "
+        "wins on both the Small model and the much larger 35B Medium model:\n\n"
+        "| Model | Baseline | Optimized | Speedup |\n"
+        "|-------|----------|-----------|---------|\n"
+        f"| Qwen1.5-MoE-A2.7B (Small) | {b_tps} tok/s ({b_dev}) | {o_tps} tok/s "
+        f"({o_dev}) | **{speedup}×** ({s_pct}) |\n"
+        f"| Qwen3.5-35B-A3B (Medium, IQ2) | {m_base} tok/s ({m_bdev}) | {m_opt} "
+        f"tok/s ({m_odev}) | **{m_speed}×** ({m_pct}) |\n\n"
         "Note that this two-knob delta is the *production* difference between the "
         "engines, not the cumulative stack of every kept experiment: some early "
         "CPU-only wins (e.g. `n_ctx=512`) are deliberately not in the final config, "
@@ -495,8 +546,9 @@ def _engines(cmp: dict) -> str:
         "experimental story; this table tells the shipped one.\n\n"
         "Quality is held constant by construction: both engines decode greedily "
         "from the same weights, so the optimized engine produces the same "
-        "output as the baseline — it just produces it ~"
-        f"{speedup}× faster by moving the dequant + matmul work onto the GPU. "
+        "output as the baseline — it just produces it faster (~"
+        f"{speedup}× on the Small model, ~{m_speed}× on the 35B Medium model) by "
+        "moving the dequant + matmul work onto the GPU. "
         "The dashboard's **Compare** and **Diff Viewer** tabs expose exactly this "
         "A/B live, including the per-knob explanation of why each change helped.\n"
     )
@@ -517,7 +569,7 @@ def _concept(cmp: dict, rows: list[dict]) -> str:
         "router picks 4 experts out of 64; the other 60 stay on disk untouched.\n\n"
         "**Per-token streaming cost (11 GB build):**\n"
         "- Total expert data: ~11 GB\n"
-        "- Active fraction per token: 4/64 experts × 24 layers ≈ 6.25%\n"
+        "- Active fraction per token: 4 of 64 experts per layer ≈ 6.25% of expert weight\n"
         "- Data actually read per token: ~11 GB × 6.25% ≈ **0.7 GB per token**\n\n"
         "That 0.7 GB streams through the OS page cache. On a warm cache most of it "
         "is served at memory bandwidth (~400 GB/s); on a cold cache it hits SSD "
@@ -547,23 +599,16 @@ def _concept(cmp: dict, rows: list[dict]) -> str:
 
 
 def _limitations(cmp: dict) -> str:
-    iq2 = cmp["medium_iq2"]
-    iq2_opt  = _t(iq2.get("optimized_tps"))
     return (
         "\n---\n\n## Limitations\n\n"
-        "- **The Medium tier runs as the 11 GB build so it fits on a 24 GB machine "
-        "with full GPU offload.** A higher-precision build of the same 35B model "
-        "would not fit alongside the Metal GPU buffers on 24 GB: full GPU offload "
-        "would OOM and fall back to slow CPU-only inference, too slow to drive the "
-        "dashboard, which generates each prompt live on demand. The 11 GB build "
-        f"leaves ~13 GB free for the OS page cache, keeps full GPU offload viable, "
-        f"and reaches {iq2_opt} tok/s.\n"
-        "- **This is a precision-for-interactivity trade-off, not a free win.** The "
-        "11 GB build is more aggressively compressed than a higher-precision build "
-        "would be, so the Medium tier is demonstrated at reduced precision — "
-        "exactly the configuration where the structured-output quality canary "
-        "matters most. A larger-memory machine could run a higher-precision build "
-        "of the same model; on 24 GB it is the compact build or CPU-only.\n"
+        "- **The Medium-tier results are specific to the 11 GB build on 24 GB "
+        "hardware.** Full GPU offload is viable only because the 11 GB footprint "
+        "leaves ~13 GB free for the OS page cache; on a machine with less unified "
+        "memory that headroom shrinks and the GPU-offload win may not hold.\n"
+        "- **The Medium tier is demonstrated at IQ2 precision.** That is the "
+        "configuration where the structured-output quality canary matters most, so "
+        "its quality is only spot-checked by that canary rather than graded at "
+        "scale.\n"
         "- **All results are single-machine (Apple M4 · 24 GB).** The RAM ceiling "
         "drives several of the findings (KV-cache vs page-cache competition, "
         "footprint headroom enabling GPU offload); they would shift on a machine "
@@ -578,8 +623,7 @@ def _future_work(cmp: dict, rows: list[dict]) -> str:
         f"- **Run the full experiment cycle natively on the 35B model.** We tuned "
         f"the {n_exp} single-knob experiments on the Small model and transferred "
         "the best config to the 35B. The natural next step is to run that same "
-        "cycle directly on Qwen3.5-35B-A3B (on this 24 GB machine, and on a "
-        "higher-memory host where a higher-precision build also fits) to see "
+        "cycle directly on Qwen3.5-35B-A3B to see "
         "whether its optimal configuration differs from the Small model's and "
         "whether tuning in place beats the transferred config.\n"
         "- **Test other MoE model families.** The "
@@ -594,16 +638,14 @@ def _future_work(cmp: dict, rows: list[dict]) -> str:
         "Qwen MoE layout. That isolates which conclusions are about MoE inference "
         "in general versus the particular model we tuned on.\n"
         "- **Lift the 24 GB memory ceiling.** Several findings are driven by the "
-        "RAM limit, including the precision compromise the dashboard makes on the "
-        "Medium tier. Re-running on a larger-memory machine would show how much of "
+        "RAM limit. Re-running on a larger-memory machine would show how much of "
         "the memory pressure and cold-cache penalty is hardware-specific rather "
         "than fundamental.\n"
         "- **More thorough quality testing.** Our quality checking is light: the "
         "structured-output prompts act as a canary, but we do not score correctness "
         "or coherence at scale. A more intensive quality pass would grade a larger "
-        "and more varied prompt set and compare outputs across precision levels of "
-        "the same model, so the precision cost of the compact dashboard config is "
-        "measured rather than assumed.\n"
+        "and more varied prompt set, so output quality is measured at scale rather "
+        "than spot-checked by a handful of structured-output prompts.\n"
     )
 
 
@@ -657,10 +699,8 @@ def _dashboard(cmp: dict) -> str:
         "(experts/layer, top-K, sparsity, bytes streamed per token), making the "
         "\"only K experts touched per token\" argument concrete.\n\n"
         "**One deliberate constraint:** the Live Playground runs the Medium tier as "
-        "the 11 GB build — a higher-precision build of the same 35B model would OOM "
-        "once GPU buffers are added on a 24 GB machine and fall back to slow "
-        "CPU-only inference, too slow to drive a live demo. This is the same "
-        "precision-for-interactivity trade-off detailed under Limitations.\n"
+        "the 11 GB model, which fits on a 24 GB machine with full GPU offload and is "
+        "fast enough to generate each prompt live on demand.\n"
     )
 
 
@@ -698,6 +738,7 @@ def build() -> str:
         _header(cmp),
         _headline(cmp, rows),
         _methodology(),
+        _categories(rows),
         _progression(rows, baseline),
         _top_tables(rows, baseline),
         _what_we_tried(rows, cmp, baseline),

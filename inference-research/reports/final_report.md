@@ -3,7 +3,7 @@
 > All benchmark numbers are **measured** on real hardware from real model runs. No fabricated results.
 
 **Hardware:** Apple M4 · 24 GB unified memory · macOS  
-**Primary model:** Qwen1.5-MoE-A2.7B (8.84 GB GGUF build), 60 experts/layer, top-4 active, 24 MoE layers  
+**Primary model:** Qwen1.5-MoE-A2.7B (8.84 GB GGUF build), ~14.3B total / 2.7B active, 60 experts/layer, top-4 active, 24 MoE layers  
 **Validation model:** Qwen3.5-35B-A3B (11 GB build) — a 35B-parameter MoE run in roughly the Small model's footprint  
 **Inference backend:** llama-cpp-python + Metal  
 **Repository:** https://github.com/mauriciotorres-ds/flash-moe/tree/main/inference-research
@@ -26,9 +26,13 @@
 
 ## Methodology
 
-We treated optimization as an **autoresearch loop**: every claim in this report
-comes from a measurement on the model, not from intuition. Nothing is kept
-unless the benchmark says it helped.
+We treated optimization as an **autoresearch loop driven by Claude Code**
+(Anthropic's agentic coding CLI): the agent proposed each single-knob
+hypothesis, ran the benchmark, read the measured result, and decided keep or
+discard before moving on to the next experiment, with a human steering the
+overall direction. Every claim in this report comes from a measurement on the
+model, not from intuition, and nothing is kept unless the benchmark says it
+helped.
 
 **1. One knob per experiment.** Each experiment changes a *single* configuration
 field (`n_gpu_layers`, `n_threads`, `n_ctx`, `n_batch`, `use_mmap`, `use_mlock`,
@@ -52,8 +56,9 @@ Decoding is greedy (`temp=0, top_k=1`) with a fixed seed (1234).
 **4. Keep/discard is decided by measurement.** A config is **kept** only if it
 is **≥1% faster** (mean tok/s) than the current best; otherwise it is
 **discarded** and logged to `failure_log.md` with why it was tried and what it
-cost. exp013 (GPU offload) earned its way into the best config; exp002 (`mlock`)
-was thrown out because it measured *slower*. Discards are first-class results.
+cost. exp013–exp014 (GPU offload, then flash attention) earned their way into
+the best config; exp002 (`mlock`) was thrown out because it measured *slower*.
+Discards are first-class results.
 
 **5. Speed is gated by output quality.** A faster config only counts as a win if
 it still produces good output, so every config is scored by an automated quality
@@ -73,11 +78,30 @@ checkpoints `state.json`, and makes a git commit. An interrupted run resumes
 from `state.json` without re-running completed experiments.
 
 **7. Cross-tier transfer validation.** The best Small-model config is re-tested
-on the larger Qwen3.5-35B-A3B at two build sizes to check whether the wins
-*generalize*, measured rather than assumed.
+on the larger Qwen3.5-35B-A3B to check whether the wins *generalize*. It is
+benchmarked exactly like every other config — the same fixed 10-prompt suite,
+greedy decoding, one warmup discarded — and its mean tok/s is compared against
+the unoptimized baseline, so the transfer is measured rather than assumed.
 
 > This report is regenerated from `results/` and `state.json` by
 > `python reports/generate_report.py`; the numbers below are never hand-typed.
+
+---
+
+## Experiment Categories
+
+The **41 experiments** are organised into **8 categories**, each isolating one part of the configuration space. Counts are computed directly from `results/`; the distribution shows where the search spent its effort — heaviest on SSD streaming and GPU offload, the two questions that decided the outcome.
+
+| Category | Experiments | What it varies |
+|----------|-------------|----------------|
+| `ssd_streaming` | 11 | `mmap` vs full-RAM load, `mlock` pinning, page-cache warmth, expert-read batch size |
+| `gpu_offload` | 7 | `n_gpu_layers` — CPU → partial → half → full Metal offload (± `flash_attn` / `mlock`) |
+| `combo` | 6 | stacking already-validated wins together on top of the current best |
+| `decoding` | 5 | decode params — greedy vs sampling, `top_k` / `top_p` / `temp`, generation length |
+| `threading` | 5 | `n_threads` / `n_threads_batch` count (1 → 4 → 8 → 12) |
+| `context` | 3 | `n_ctx` KV-cache size and its interaction with `n_batch` |
+| `attention` | 2 | `flash_attn` on / off |
+| `reproducibility` | 2 | re-running fixed configs to confirm stability (seed check, cold baseline recheck) |
 
 ---
 
@@ -130,7 +154,6 @@ Plotting the ratio makes the magnitudes legible at a glance. The plateau sits at
 | `n_threads=1` | **-78.8%** | Single-threaded CPU is catastrophically slow for matrix ops |
 | `n_threads=12` | **-43.1%** | Oversubscribing threads increases context-switching overhead |
 | No mmap (full RAM load) | **-1.8%** | Eager loading is slightly worse than OS-managed paging |
-| `n_gpu_layers=-1` on a higher-precision 35B build | OOM / 0 tok/s | A larger build leaves no room for GPU buffers in a 24 GB machine |
 | LZ4 compressed experts | N/A | Decompression overhead exceeds the cache savings |
 | Larger batch (`n_batch=2048`) | **-1.5%** | Batch tuning had negligible effect on single-stream throughput |
 
@@ -166,7 +189,7 @@ The experiments are delivered as **two engine classes** (`baseline_engine.py` an
 - **`BaselineEngine`** is the fixed exp000 reference: CPU-only (`n_gpu_layers=0`), no flash attention, `mmap` on (trust the OS page cache). Every optimization in this report is measured against it.
 - **`OptimizedEngine`** does not hard-code a tuned config — it loads `results/best_config.json`, the config the experiment cycle *proved* fastest (exp014). The optimized engine is therefore **defined by the measured winner**, not by intuition; if the experiments have not been run, it falls back to the baseline rather than inventing a config.
 
-Both engines run the same model, the same 10-prompt suite, the same seed (1234), and the same greedy decode. Only two config knobs change between them:
+On each model, both engines run the same 10-prompt suite, the same seed (1234), and the same greedy decode. Only two config knobs change between them:
 
 | Knob | Baseline | Optimized | Effect |
 |------|----------|-----------|--------|
@@ -174,16 +197,16 @@ Both engines run the same model, the same 10-prompt suite, the same seed (1234),
 | `flash_attn` | `False` | `True` | +3.6% on top of GPU offload |
 | *(n_ctx, n_batch, mmap, mlock, threads)* | unchanged | unchanged | held constant |
 
-Because everything except those two knobs is identical, the throughput gap is attributable purely to the optimization stack rather than to a tangle of simultaneous changes:
+Because everything except those two knobs is identical, the throughput gap on each model is attributable purely to the optimization stack rather than to a tangle of simultaneous changes — and the same two-knob change wins on both the Small model and the much larger 35B Medium model:
 
-| Engine | Device | Throughput | Speedup |
-|--------|--------|-----------|---------|
-| Baseline | cpu | 51.25 tok/s | 1.00× |
-| Optimized | metal | 98.96 tok/s | **1.931×** |
+| Model | Baseline | Optimized | Speedup |
+|-------|----------|-----------|---------|
+| Qwen1.5-MoE-A2.7B (Small) | 51.25 tok/s (cpu) | 98.96 tok/s (metal) | **1.931×** (+93%) |
+| Qwen3.5-35B-A3B (Medium, IQ2) | 18.7 tok/s (cpu) | 45.62 tok/s (metal) | **2.439×** (+144%) |
 
 Note that this two-knob delta is the *production* difference between the engines, not the cumulative stack of every kept experiment: some early CPU-only wins (e.g. `n_ctx=512`) are deliberately not in the final config, because full GPU offload removed the RAM competition they exploited, so the default `n_ctx=2048` was kept. The progression table tells the experimental story; this table tells the shipped one.
 
-Quality is held constant by construction: both engines decode greedily from the same weights, so the optimized engine produces the same output as the baseline — it just produces it ~1.931× faster by moving the dequant + matmul work onto the GPU. The dashboard's **Compare** and **Diff Viewer** tabs expose exactly this A/B live, including the per-knob explanation of why each change helped.
+Quality is held constant by construction: both engines decode greedily from the same weights, so the optimized engine produces the same output as the baseline — it just produces it faster (~1.931× on the Small model, ~2.439× on the 35B Medium model) by moving the dequant + matmul work onto the GPU. The dashboard's **Compare** and **Diff Viewer** tabs expose exactly this A/B live, including the per-knob explanation of why each change helped.
 
 ---
 
@@ -195,7 +218,7 @@ A Mixture-of-Experts model like Qwen3.5-35B-A3B has 35B parameters but **only ~3
 
 **Per-token streaming cost (11 GB build):**
 - Total expert data: ~11 GB
-- Active fraction per token: 4/64 experts × 24 layers ≈ 6.25%
+- Active fraction per token: 4 of 64 experts per layer ≈ 6.25% of expert weight
 - Data actually read per token: ~11 GB × 6.25% ≈ **0.7 GB per token**
 
 That 0.7 GB streams through the OS page cache. On a warm cache most of it is served at memory bandwidth (~400 GB/s); on a cold cache it hits SSD (~5 to 10 GB/s), which is why throughput collapses when the page cache cannot stay warm. **MoE sparsity turns a "touch all 11 GB per token" problem into a "touch 0.7 GB per token" problem**, and the page cache turns most of those touches into fast RAM reads, as long as there is free RAM to hold the hot expert subset.
@@ -219,24 +242,24 @@ It is organized into six tabs:
 - **Diff Viewer** — the exact config delta between baseline and optimized (`n_gpu_layers`, `flash_attn`), with a per-knob explanation of why each change helped and what it cost.
 - **MoE Visualization** — the expert-streaming architecture per model (experts/layer, top-K, sparsity, bytes streamed per token), making the "only K experts touched per token" argument concrete.
 
-**One deliberate constraint:** the Live Playground runs the Medium tier as the 11 GB build — a higher-precision build of the same 35B model would OOM once GPU buffers are added on a 24 GB machine and fall back to slow CPU-only inference, too slow to drive a live demo. This is the same precision-for-interactivity trade-off detailed under Limitations.
+**One deliberate constraint:** the Live Playground runs the Medium tier as the 11 GB model, which fits on a 24 GB machine with full GPU offload and is fast enough to generate each prompt live on demand.
 
 ---
 
 ## Limitations
 
-- **The Medium tier runs as the 11 GB build so it fits on a 24 GB machine with full GPU offload.** A higher-precision build of the same 35B model would not fit alongside the Metal GPU buffers on 24 GB: full GPU offload would OOM and fall back to slow CPU-only inference, too slow to drive the dashboard, which generates each prompt live on demand. The 11 GB build leaves ~13 GB free for the OS page cache, keeps full GPU offload viable, and reaches 45.62 tok/s.
-- **This is a precision-for-interactivity trade-off, not a free win.** The 11 GB build is more aggressively compressed than a higher-precision build would be, so the Medium tier is demonstrated at reduced precision — exactly the configuration where the structured-output quality canary matters most. A larger-memory machine could run a higher-precision build of the same model; on 24 GB it is the compact build or CPU-only.
+- **The Medium-tier results are specific to the 11 GB build on 24 GB hardware.** Full GPU offload is viable only because the 11 GB footprint leaves ~13 GB free for the OS page cache; on a machine with less unified memory that headroom shrinks and the GPU-offload win may not hold.
+- **The Medium tier is demonstrated at IQ2 precision.** That is the configuration where the structured-output quality canary matters most, so its quality is only spot-checked by that canary rather than graded at scale.
 - **All results are single-machine (Apple M4 · 24 GB).** The RAM ceiling drives several of the findings (KV-cache vs page-cache competition, footprint headroom enabling GPU offload); they would shift on a machine with more unified memory.
 
 ---
 
 ## Future Work
 
-- **Run the full experiment cycle natively on the 35B model.** We tuned the 41 single-knob experiments on the Small model and transferred the best config to the 35B. The natural next step is to run that same cycle directly on Qwen3.5-35B-A3B (on this 24 GB machine, and on a higher-memory host where a higher-precision build also fits) to see whether its optimal configuration differs from the Small model's and whether tuning in place beats the transferred config.
+- **Run the full experiment cycle natively on the 35B model.** We tuned the 41 single-knob experiments on the Small model and transferred the best config to the 35B. The natural next step is to run that same cycle directly on Qwen3.5-35B-A3B to see whether its optimal configuration differs from the Small model's and whether tuning in place beats the transferred config.
 - **Test other MoE model families.** The current study covers two Qwen MoEs. The more interesting axis to broaden is the *model* itself: running the same experiment cycle on architecturally different MoEs — e.g. Mixtral 8x7B (8 experts, top-2), DeepSeek-MoE / DeepSeek-V2 (fine-grained experts plus shared experts), Phi-MoE, or GPT-OSS — would show whether the headline findings (GPU-offload dominance, page-cache over manual pinning, KV-cache vs expert-cache competition) hold across different expert counts, routing schemes, and shared-expert designs, or whether they are specific to the Qwen MoE layout. That isolates which conclusions are about MoE inference in general versus the particular model we tuned on.
-- **Lift the 24 GB memory ceiling.** Several findings are driven by the RAM limit, including the precision compromise the dashboard makes on the Medium tier. Re-running on a larger-memory machine would show how much of the memory pressure and cold-cache penalty is hardware-specific rather than fundamental.
-- **More thorough quality testing.** Our quality checking is light: the structured-output prompts act as a canary, but we do not score correctness or coherence at scale. A more intensive quality pass would grade a larger and more varied prompt set and compare outputs across precision levels of the same model, so the precision cost of the compact dashboard config is measured rather than assumed.
+- **Lift the 24 GB memory ceiling.** Several findings are driven by the RAM limit. Re-running on a larger-memory machine would show how much of the memory pressure and cold-cache penalty is hardware-specific rather than fundamental.
+- **More thorough quality testing.** Our quality checking is light: the structured-output prompts act as a canary, but we do not score correctness or coherence at scale. A more intensive quality pass would grade a larger and more varied prompt set, so output quality is measured at scale rather than spot-checked by a handful of structured-output prompts.
 
 ---
 
